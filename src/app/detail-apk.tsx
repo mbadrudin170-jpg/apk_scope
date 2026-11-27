@@ -63,8 +63,8 @@ export default function DetailApk() {
 
   const apkInfo =
     result !== null && result.pkg === packageName ? result.info : null;
-    const libraries = apkInfo?.nativeLibs ?? [];
-    const allFiles = apkInfo?.allFiles ?? [];
+  const libraries = apkInfo?.nativeLibs ?? [];
+  const allFiles = apkInfo?.allFiles ?? [];
   const loading =
     !!packageName && (result === null || result.pkg !== packageName);
   const error = !packageName
