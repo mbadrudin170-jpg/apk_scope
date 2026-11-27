@@ -1,7 +1,10 @@
 import { useLocalSearchParams } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -70,11 +73,53 @@ export default function DetailApk() {
       ? result.error
       : "";
 
+  const handleCopy = async () => {
+    if (!apkInfo) return;
+    const lines: string[] = [];
+    lines.push(`Package: ${apkInfo.packageName ?? packageName ?? ""}`);
+    lines.push(`Nama: ${apkInfo.appName}`);
+    lines.push(`Versi: ${apkInfo.versionName ?? "-"}`);
+    lines.push(`Version code: ${apkInfo.versionCode}`);
+    lines.push(`Minimum SDK: ${apkInfo.minSdk}`);
+    lines.push(`Target SDK: ${apkInfo.targetSdk}`);
+    lines.push(`Jumlah split APK: ${apkInfo.splitApkCount}`);
+    lines.push(`Jumlah permission: ${apkInfo.permissions.length}`);
+    lines.push("");
+    lines.push("File APK:");
+    apkInfo.apkFiles.forEach((f) => lines.push(`- ${f}`));
+    lines.push("");
+    lines.push("Native libraries:");
+    libraries.forEach((l) => lines.push(`- ${l}`));
+    lines.push("");
+    lines.push("Semua file di dalam APK:");
+    allFiles.forEach((f) => lines.push(`- ${f}`));
+    lines.push("");
+    lines.push("Permissions:");
+    apkInfo.permissions.forEach((p) => lines.push(`- ${p}`));
+    await Clipboard.setStringAsync(lines.join("\n"));
+    Alert.alert("Disalin", "Semua informasi APK telah disalin.");
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Detail APK</Text>
-        {packageName ? <Text style={styles.sub}>{packageName}</Text> : null}
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Detail APK</Text>
+            {packageName ? <Text style={styles.sub}>{packageName}</Text> : null}
+          </View>
+          <Pressable
+            onPress={handleCopy}
+            disabled={!apkInfo}
+            style={({ pressed }) => [
+              styles.copyButton,
+              !apkInfo && styles.copyButtonDisabled,
+              pressed && styles.copyButtonPressed,
+            ]}
+          >
+            <Text style={styles.copyButtonText}>Salin semua</Text>
+          </Pressable>
+        </View>
 
         {loading ? (
           <View style={styles.center}>
@@ -164,6 +209,35 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 16,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 12,
+  },
+  headerText: {
+    flex: 1,
+  },
+  copyButton: {
+    backgroundColor: "#26334D",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#3B4A6B",
+  },
+  copyButtonDisabled: {
+    opacity: 0.4,
+  },
+  copyButtonPressed: {
+    opacity: 0.7,
+  },
+  copyButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "600",
   },
   title: {
     color: "#FFFFFF",
