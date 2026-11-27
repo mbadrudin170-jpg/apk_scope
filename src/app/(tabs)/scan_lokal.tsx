@@ -1,7 +1,9 @@
 import { router } from "expo-router";
+import * as DocumentPicker from "expo-document-picker";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -11,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
+  getApkInfo,
   getInstalledApps,
   type InstalledApp,
 } from "../../../modules/installed-apps/src";
@@ -19,6 +22,41 @@ export default function ScanLokal() {
   const [apps, setApps] = useState<InstalledApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const analyzeApk = async () => {
+    try {
+      const selection = await DocumentPicker.getDocumentAsync({
+        type: "application/vnd.android.package-archive",
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+      if (selection.canceled) return;
+      const asset = selection.assets[0];
+      setAnalyzing(true);
+      const info = await getApkInfo(asset.uri);
+      if (!info) {
+        Alert.alert("Gagal", "APK tidak dapat dibaca.");
+        return;
+      }
+      const text = [
+        `Nama: ${info.appName}`,
+        `Package: ${info.packageName}`,
+        `Versi: ${info.versionName ?? "-"} (${info.versionCode})`,
+        `minSdk: ${info.minSdk} targetSdk: ${info.targetSdk}`,
+        `Permissions: ${info.permissions.length}`,
+        `Native libs: ${info.nativeLibs.join(", ") || "-"}`,
+      ].join("\n");
+      Alert.alert("Hasil analisis on-device", text);
+    } catch (cause) {
+      Alert.alert(
+        "Gagal",
+        cause instanceof Error ? cause.message : "Analisis gagal",
+      );
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -65,6 +103,16 @@ export default function ScanLokal() {
         ) : (
           <>
             {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <Pressable
+              onPress={() => void analyzeApk()}
+              disabled={analyzing}
+              style={styles.analyzeButton}
+            >
+              <Text style={styles.analyzeText}>
+                {analyzing ? "Menganalisis..." : "Analisis APK (on-device)"}
+              </Text>
+            </Pressable>
 
             <FlatList
               data={apps}
@@ -117,4 +165,12 @@ const styles = StyleSheet.create({
   sub: { color: "#A8B1C5", fontSize: 12, marginTop: 2 },
   empty: { color: "#A8B1C5", paddingVertical: 20, textAlign: "center" },
   error: { color: "#FF9292", marginBottom: 8 },
+  analyzeButton: {
+    backgroundColor: "#4778F5",
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  analyzeText: { color: "#FFFFFF", fontWeight: "700" },
 });
