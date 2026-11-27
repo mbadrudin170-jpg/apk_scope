@@ -1,5 +1,6 @@
 {
   "name": "apk_scope",
+  "prettier": ".prettierrc/.prettierrc",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
