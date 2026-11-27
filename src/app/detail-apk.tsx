@@ -1,6 +1,12 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getAppLibraries } from "../../modules/installed-apps/src";
@@ -11,7 +17,9 @@ export default function DetailApk() {
   }>();
   const [libraries, setLibraries] = useState<string[]>([]);
   const [loading, setLoading] = useState(!!packageName);
-  const [error, setError] = useState(packageName ? "" : "Package tidak tersedia.");
+  const [error, setError] = useState(
+    packageName ? "" : "Package tidak tersedia.",
+  );
 
   useEffect(() => {
     if (!packageName) return;
@@ -27,7 +35,9 @@ export default function DetailApk() {
       })
       .catch((cause: unknown) => {
         if (mounted) {
-          setError(cause instanceof Error ? cause.message : "Gagal memuat library");
+          setError(
+            cause instanceof Error ? cause.message : "Gagal memuat library",
+          );
         }
       })
       .finally(() => {
@@ -58,7 +68,9 @@ export default function DetailApk() {
             data={libraries}
             keyExtractor={(item, index) => `${item}-${index}`}
             ListEmptyComponent={
-              <Text style={styles.empty}>Tidak ada library native yang ditemukan.</Text>
+              <Text style={styles.empty}>
+                Tidak ada library native yang ditemukan.
+              </Text>
             }
             renderItem={({ item }) => (
               <View style={styles.row}>
