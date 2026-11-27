@@ -72,10 +72,11 @@ class AnalysisDatabase:
             )
 
     @staticmethod
-    def serialize(row: sqlite3.Row) -> dict[str, Any]:
+    def serialize(row: sqlite3.Row, include_report: bool = True) -> dict[str, Any]:
         result = dict(row)
         report = result.pop("report_json")
-        result["report"] = json.loads(report) if report else None
+        if include_report:
+            result["report"] = json.loads(report) if report else None
         return result
 
     def get(self, analysis_id: str) -> dict[str, Any] | None:
@@ -90,7 +91,7 @@ class AnalysisDatabase:
             rows = connection.execute(
                 "SELECT * FROM analyses ORDER BY created_at DESC LIMIT ?", (limit,)
             ).fetchall()
-        return [self.serialize(row) for row in rows]
+        return [self.serialize(row, include_report=False) for row in rows]
 
     def delete(self, analysis_id: str) -> bool:
         with self.connect() as connection:
