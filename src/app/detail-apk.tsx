@@ -1,12 +1,18 @@
+import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Text, View } from "react-native";
 
 export default function DetailApk() {
   return (
-    <SafeAreaView>
-      <View>
-        <Text>Detail APK</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Detail APK</Text>
       </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: "#0B1020" },
+  container: { flex: 1, padding: 16 },
+  title: { color: "#FFFFFF", fontSize: 20, fontWeight: "700" },
+});
