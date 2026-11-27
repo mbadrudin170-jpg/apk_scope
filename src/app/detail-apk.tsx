@@ -1,23 +1,17 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getAppLibraries } from "../../modules/installed-apps/src";
 
 export default function DetailApk() {
-  const { packageName } = useLocalSearchParams<{ packageName?: string }>();
+  const { packageName } = useLocalSearchParams<{
+    packageName?: string;
+  }>();
   const [libraries, setLibraries] = useState<string[]>([]);
   const [loading, setLoading] = useState(!!packageName);
-  const [error, setError] = useState(
-    packageName ? "" : "Package tidak tersedia.",
-  );
+  const [error, setError] = useState(packageName ? "" : "Package tidak tersedia.");
 
   useEffect(() => {
     if (!packageName) return;
@@ -33,9 +27,7 @@ export default function DetailApk() {
       })
       .catch((cause: unknown) => {
         if (mounted) {
-          setError(
-            cause instanceof Error ? cause.message : "Gagal memuat library",
-          );
+          setError(cause instanceof Error ? cause.message : "Gagal memuat library");
         }
       })
       .finally(() => {
@@ -66,9 +58,7 @@ export default function DetailApk() {
             data={libraries}
             keyExtractor={(item, index) => `${item}-${index}`}
             ListEmptyComponent={
-              <Text style={styles.empty}>
-                Tidak ada library native yang ditemukan.
-              </Text>
+              <Text style={styles.empty}>Tidak ada library native yang ditemukan.</Text>
             }
             renderItem={({ item }) => (
               <View style={styles.row}>
@@ -83,13 +73,43 @@ export default function DetailApk() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#0B1020" },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#0B1020",
+  },
   container: { flex: 1, padding: 16 },
-  title: { color: "#FFFFFF", fontSize: 20, fontWeight: "700", marginBottom: 4 },
-  sub: { color: "#A8B1C5", fontSize: 12, marginBottom: 12 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  row: { paddingVertical: 8, borderBottomWidth: 1, borderColor: "#26334D" },
-  lib: { color: "#FFFFFF", fontSize: 13 },
-  empty: { color: "#A8B1C5", paddingVertical: 20, textAlign: "center" },
-  error: { color: "#FF9292", marginTop: 8 },
+  title: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  sub: {
+    color: "#A8B1C5",
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  row: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderColor: "#26334D",
+  },
+  lib: {
+    color: "#FFFFFF",
+    fontSize: 13,
+  },
+  empty: {
+    color: "#A8B1C5",
+    paddingVertical: 20,
+    textAlign: "center",
+  },
+  error: {
+    color: "#FF9292",
+    marginTop: 8,
+  },
 });
