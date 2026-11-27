@@ -63,11 +63,13 @@ export default function ScanLokal() {
               data={apps}
               keyExtractor={(item) => item.packageName}
               ListEmptyComponent={
-                error ? null : (
-                  <Text style={styles.empty}>
-                    Tidak ada aplikasi yang dapat ditampilkan.
-                  </Text>
-                )
+                error
+                  ? undefined
+                  : (
+                      <Text style={styles.empty}>
+                        Tidak ada aplikasi yang dapat ditampilkan.
+                      </Text>
+                    )
               }
               renderItem={({ item }) => (
                 <View style={styles.row}>
