@@ -1,15 +1,3 @@
-[submodule "script"]
-	path = script
-	url = https://github.com/mbadrudin170-jpg/script.git
-	branch = main
-[submodule ".agents"]
-	path = .agents
-	url = https://github.com/mbadrudin170-jpg/.agents.git
-	branch = main
-[submodule "prettierrc"]
-	path = prettierrc
-	url = https://github.com/mbadrudin170-jpg/.prettierrc.git
-	branch = main
 [submodule "docs"]
 	path = docs
 	url = https://github.com/mbadrudin170-jpg/docs.git
