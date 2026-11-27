@@ -46,11 +46,11 @@ export default function AnalysisDetailScreen() {
   const [selectedPackage, setSelectedPackage] = useState("");
   const [selectedClass, setSelectedClass] = useState("");
   const [methods, setMethods] = useState<DexMethod[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!API_URL);
   const [error, setError] = useState(API_URL ? "" : "Alamat backend belum tersedia. Kembali ke halaman utama dan isi konfigurasi backend.");
 
   useEffect(() => {
-    if (!API_URL) { setLoading(false); return; }
+    if (!API_URL) return;
     let active = true;
     Promise.all([
       fetchAnalysis(API_URL, analysisId, API_TOKEN),
@@ -69,15 +69,18 @@ export default function AnalysisDetailScreen() {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [analysisId]);
+  }, [analysisId, API_URL, API_TOKEN]);
 
   useEffect(() => {
-    if (!API_URL) { setLoading(false); return; }
+    if (!API_URL) return;
     let active = true;
-    setLoading(true);
-    setError("");
     const load = async () => {
-      if (tab === "overview") return;
+      if (active) setLoading(true);
+      if (active) setError("");
+      if (tab === "overview") {
+        if (active) setLoading(false);
+        return;
+      }
       if (tab === "packages") {
         const page = await fetchDexPackages(API_URL, analysisId, query, offset, API_TOKEN);
         if (active) { setPackages(page.items); setTotal(page.total); }
@@ -100,7 +103,7 @@ export default function AnalysisDetailScreen() {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [analysisId, tab, query, offset, selectedPackage]);
+  }, [analysisId, tab, query, offset, selectedPackage, API_URL, API_TOKEN]);
 
   const reportPackage = analysis?.report?.["package_name"];
   const subtitle = typeof reportPackage === "string" ? reportPackage : analysis?.sha256 ?? "";

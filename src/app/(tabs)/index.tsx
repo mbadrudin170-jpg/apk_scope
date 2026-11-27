@@ -37,6 +37,7 @@ function statusLabel(status: AnalysisItem["status"]): string {
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL);
   const [apiToken, setApiToken] = useState("");
 

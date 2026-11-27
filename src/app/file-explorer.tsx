@@ -17,17 +17,13 @@ const PAGE_SIZE = 100;
 export default function FileExplorer() {
   const { packageName } = useLocalSearchParams<{ packageName?: string }>();
   const [info, setInfo] = useState<ApkInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(!!packageName);
+  const [error, setError] = useState(packageName ? "" : "Package aplikasi tidak tersedia.");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
 
   useEffect(() => {
-    if (!packageName) {
-      setError("Package aplikasi tidak tersedia.");
-      setLoading(false);
-      return;
-    }
+    if (!packageName) return;
     let active = true;
     getInstalledApkInfo(packageName)
       .then((result) => {
