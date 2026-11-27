@@ -179,3 +179,39 @@ apk_scope/
 - [JADX](https://github.com/skylot/jadx)
 - [Apktool](https://github.com/iBotPeaches/Apktool)
 - [OWASP MAS](https://mas.owasp.org/)
+
+
+## Menjalankan MVP (Backend + Android)
+
+### Persyaratan server
+
+- Docker Engine dan Docker Compose plugin.
+- RAM yang memadai untuk MobSF (disarankan minimal 8 GB) dan ruang disk kosong yang cukup untuk APK serta hasil analisis.
+- Server hanya dapat dijangkau dari jaringan pribadi. Jangan membuka port API atau MobSF ke internet publik.
+
+### Konfigurasi backend
+
+1. Salin `backend/.env.example` menjadi `backend/.env`.
+2. Isi `MOBSF_API_KEY` dengan API key dari instalasi MobSF dan ganti `APP_API_TOKEN` dengan token acak panjang.
+3. Jalankan `docker compose up -d --build` dari root repository.
+4. Periksa `http://ALAMAT_SERVER:8000/health`. Endpoint ini hanya memeriksa API dan apakah key MobSF telah diisi; bukan jaminan scan MobSF siap.
+5. Pantau log dengan `docker compose logs -f api mobsf`.
+
+Data APK, database SQLite, dan data MobSF disimpan pada Docker volumes. Jangan menghapus volume jika ingin mempertahankan riwayat.
+
+### Konfigurasi aplikasi Android
+
+1. Pasang dependency sesuai Expo SDK 58: `npx expo install expo-document-picker expo-file-system`.
+2. Jalankan aplikasi dengan development build atau build internal Android.
+3. Masukkan alamat IP server yang dapat dijangkau HP dan token yang sama dengan `APP_API_TOKEN`.
+4. Pilih APK dari perangkat. Aplikasi akan mengunggahnya, lalu memperbarui riwayat secara berkala.
+
+Alamat `127.0.0.1` pada HP menunjuk ke HP itu sendiri, bukan server. Untuk penggunaan melalui jaringan publik, wajib gunakan HTTPS dan autentikasi tambahan sebelum membuka akses.
+
+### Batas MVP
+
+- Pipeline saat ini memakai FastAPI BackgroundTasks dalam satu proses API; bukan worker queue persisten. Jika proses API restart, pekerjaan yang sedang berjalan tidak otomatis dipulihkan.
+- Progres yang ditampilkan adalah progres upload dan status tahap analisis, bukan persentase internal MobSF.
+- Riwayat menampilkan ringkasan; endpoint detail memuat JSON laporan penuh.
+- Library/framework signature detector, Code Explorer, native analyzer, dan security enrichment khusus belum diimplementasikan pada tahap ini.
+- Jalankan pengujian backend dan pemeriksaan Expo di lingkungan pengembangan sebelum mengirim APK untuk analisis nyata.
