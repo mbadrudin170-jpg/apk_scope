@@ -213,5 +213,19 @@ Alamat `127.0.0.1` pada HP menunjuk ke HP itu sendiri, bukan server. Untuk pengg
 - Pipeline saat ini memakai FastAPI BackgroundTasks dalam satu proses API; bukan worker queue persisten. Jika proses API restart, pekerjaan yang sedang berjalan tidak otomatis dipulihkan.
 - Progres yang ditampilkan adalah progres upload dan status tahap analisis, bukan persentase internal MobSF.
 - Riwayat menampilkan ringkasan; endpoint detail memuat JSON laporan penuh.
-- Library/framework signature detector, Code Explorer, native analyzer, dan security enrichment khusus belum diimplementasikan pada tahap ini.
+- Parser DEX awal tersedia untuk package, class, method, dan deteksi library berbasis signature terbatas. Code Explorer hasil dekompilasi Java/Smali, native analyzer, dan security enrichment khusus belum diimplementasikan pada tahap ini.
 - Jalankan pengujian backend dan pemeriksaan Expo di lingkungan pengembangan sebelum mengirim APK untuk analisis nyata.
+
+
+### Endpoint hasil DEX
+
+Setelah analisis selesai, API menyediakan:
+
+- `GET /v1/analyses/{id}/dex` — ringkasan file DEX, package, class, method, library, dan peringatan.
+- `GET /v1/analyses/{id}/dex/packages?q=&limit=&offset=` — daftar package berpaginasi.
+- `GET /v1/analyses/{id}/dex/classes?q=&package=&limit=&offset=` — daftar class berpaginasi.
+- `GET /v1/analyses/{id}/dex/classes/{class_name}/methods` — method dari class terpilih.
+- `GET /v1/analyses/{id}/dex/libraries?q=&limit=&offset=` — signature library dengan bukti class.
+- `GET /v1/analyses/{id}/files?q=&limit=&offset=` — File Explorer arsip APK.
+
+Parser membatasi jumlah file DEX, ukuran total DEX, dan jumlah class untuk mengurangi risiko input tidak tepercaya. Hasil library hanya berupa indikasi berbasis prefix class descriptor; versi tidak disimpulkan. Status `partial` atau `failed` disertai peringatan jika DEX rusak atau melewati batas.

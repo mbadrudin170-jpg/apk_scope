@@ -1,4 +1,5 @@
 import * as DocumentPicker from "expo-document-picker";
+import { useRouter } from "expo-router";
 import { File, UploadType } from "expo-file-system";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -13,6 +14,7 @@ import {
 } from "react-native";
 
 import type { AnalysisItem } from "@/services/api/client";
+import { setApiConfig } from "@/services/api/config";
 import { fetchAnalyses, fetchAnalysis, uploadUrl } from "@/services/api/client";
 
 const DEFAULT_API_URL = "";
@@ -37,6 +39,9 @@ function statusLabel(status: AnalysisItem["status"]): string {
 export default function HomeScreen() {
   const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL);
   const [apiToken, setApiToken] = useState("");
+
+  const changeApiUrl = (value: string) => { setApiUrl(value); setApiConfig(value, apiToken); };
+  const changeApiToken = (value: string) => { setApiToken(value); setApiConfig(apiUrl, value); };
   const [analyses, setAnalyses] = useState<AnalysisItem[]>([]);
   const [selectedName, setSelectedName] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -131,32 +136,15 @@ export default function HomeScreen() {
     }
   };
 
-  const openReport = async (item: AnalysisItem) => {
+  const openReport = (item: AnalysisItem) => {
     if (item.status !== "completed") {
       Alert.alert(item.filename, item.error_message || item.progress_message);
       return;
     }
-    try {
-      const detail = await fetchAnalysis(apiUrl, item.id, apiToken);
-      const report = detail.report;
-      const appName =
-        typeof report?.["app_name"] === "string"
-          ? report["app_name"]
-          : "Nama aplikasi tidak tersedia";
-      const packageName =
-        typeof report?.["package_name"] === "string"
-          ? report["package_name"]
-          : "Package tidak tersedia";
-      Alert.alert(
-        "Ringkasan APK",
-        `${appName}\n${packageName}\nSHA-256: ${detail.sha256}`,
-      );
-    } catch (cause) {
-      Alert.alert(
-        "Gagal membuka laporan",
-        cause instanceof Error ? cause.message : "Kesalahan",
-      );
-    }
+    router.push({
+      pathname: "/analysis/[analysisId]",
+      params: { analysisId: item.id },
+    });
   };
 
   return (
@@ -173,7 +161,7 @@ export default function HomeScreen() {
         <Text style={styles.label}>Alamat backend</Text>
         <TextInput
           value={apiUrl}
-          onChangeText={setApiUrl}
+          onChangeText={changeApiUrl}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
@@ -189,7 +177,7 @@ export default function HomeScreen() {
         </Text>
         <TextInput
           value={apiToken}
-          onChangeText={setApiToken}
+          onChangeText={changeApiToken}
           autoCapitalize="none"
           autoCorrect={false}
           secureTextEntry
@@ -246,7 +234,7 @@ export default function HomeScreen() {
         analyses.map((item) => (
           <Pressable
             key={item.id}
-            onPress={() => void openReport(item)}
+            onPress={() => openReport(item)}
             style={({ pressed }) => [
               styles.analysisCard,
               pressed && styles.buttonPressed,

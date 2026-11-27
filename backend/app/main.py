@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import httpx
@@ -11,6 +12,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPExcepti
 
 from .config import Settings, get_settings
 from .database import AnalysisDatabase, utc_now
+from .dex import analyze_apk_dex
 from .mobsf import MobSFClient, MobSFError
 
 logging.basicConfig(level=logging.INFO)
@@ -98,10 +100,17 @@ async def run_analysis(analysis_id: str, apk_path: Path) -> None:
         )
         database.update(
             analysis_id,
-            status="completed",
-            progress_message="Analisis selesai",
+            status="enriching",
+            progress_message="Membaca struktur DEX, package, class, dan library",
             mobsf_hash=mobsf_hash,
             report_json=json.dumps(report, ensure_ascii=False),
+        )
+        dex_result = await asyncio.to_thread(analyze_apk_dex, apk_path)
+        await asyncio.to_thread(database.store_dex_analysis, analysis_id, dex_result)
+        database.update(
+            analysis_id,
+            status="completed",
+            progress_message="Analisis MobSF dan DEX selesai",
         )
     except (MobSFError, httpx.HTTPError) as error:
         logger.exception("Analysis failed: %s", analysis_id)
@@ -190,6 +199,112 @@ def get_analysis(analysis_id: str) -> dict[str, Any]:
     if result is None:
         raise HTTPException(status_code=404, detail="Analisis tidak ditemukan")
     return result
+
+
+def _require_analysis(analysis_id: str) -> dict[str, Any]:
+    result = database.get(analysis_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Analisis tidak ditemukan")
+    if result["status"] != "completed":
+        raise HTTPException(status_code=409, detail="Analisis belum selesai")
+    return result
+
+
+def _page_args(limit: int, offset: int) -> tuple[int, int]:
+    return max(1, min(limit, 200)), max(0, offset)
+
+
+@app.get("/v1/analyses/{analysis_id}/dex", dependencies=[Depends(require_access)])
+def get_dex_summary(analysis_id: str) -> dict[str, Any]:
+    result = _require_analysis(analysis_id)
+    return result.get("dex_summary") or {
+        "status": "unavailable",
+        "dex_file_count": 0,
+        "package_count": 0,
+        "class_count": 0,
+        "method_count": 0,
+        "library_count": 0,
+        "warnings": ["Ringkasan DEX belum tersedia."],
+    }
+
+
+@app.get("/v1/analyses/{analysis_id}/dex/packages", dependencies=[Depends(require_access)])
+def get_dex_packages(
+    analysis_id: str, q: str = "", limit: int = 50, offset: int = 0
+) -> dict[str, Any]:
+    _require_analysis(analysis_id)
+    page_limit, page_offset = _page_args(limit, offset)
+    items, total = database.dex_packages(
+        analysis_id, q.strip()[:200], page_limit, page_offset
+    )
+    return {"items": items, "total": total, "limit": page_limit, "offset": page_offset}
+
+
+@app.get("/v1/analyses/{analysis_id}/dex/classes", dependencies=[Depends(require_access)])
+def get_dex_classes(
+    analysis_id: str,
+    q: str = "",
+    package: str = "",
+    limit: int = 50,
+    offset: int = 0,
+) -> dict[str, Any]:
+    _require_analysis(analysis_id)
+    page_limit, page_offset = _page_args(limit, offset)
+    items, total = database.dex_classes(
+        analysis_id, q.strip()[:200], page_limit, page_offset, package.strip()[:300]
+    )
+    return {"items": items, "total": total, "limit": page_limit, "offset": page_offset}
+
+
+@app.get("/v1/analyses/{analysis_id}/dex/classes/{class_name:path}/methods", dependencies=[Depends(require_access)])
+def get_dex_methods(analysis_id: str, class_name: str) -> dict[str, Any]:
+    _require_analysis(analysis_id)
+    methods = database.dex_methods(analysis_id, class_name)
+    if methods is None:
+        raise HTTPException(status_code=404, detail="Class tidak ditemukan")
+    return {"class_name": class_name, "items": methods, "total": len(methods)}
+
+
+@app.get("/v1/analyses/{analysis_id}/dex/libraries", dependencies=[Depends(require_access)])
+def get_dex_libraries(
+    analysis_id: str, q: str = "", limit: int = 50, offset: int = 0
+) -> dict[str, Any]:
+    _require_analysis(analysis_id)
+    page_limit, page_offset = _page_args(limit, offset)
+    items, total = database.dex_libraries(
+        analysis_id, q.strip()[:200], page_limit, page_offset
+    )
+    return {"items": items, "total": total, "limit": page_limit, "offset": page_offset}
+
+
+@app.get("/v1/analyses/{analysis_id}/files", dependencies=[Depends(require_access)])
+def get_analysis_files(
+    analysis_id: str, q: str = "", limit: int = 100, offset: int = 0
+) -> dict[str, Any]:
+    _require_analysis(analysis_id)
+    apk_path = settings.app_data_dir / "uploads" / f"{analysis_id}.apk"
+    if not apk_path.is_file():
+        raise HTTPException(status_code=404, detail="File APK tidak tersedia di server")
+    page_limit, page_offset = _page_args(limit, offset)
+    try:
+        with zipfile.ZipFile(apk_path) as archive:
+            names = sorted(
+                (
+                    info.filename
+                    for info in archive.infolist()
+                    if not info.is_dir() and q.casefold() in info.filename.casefold()
+                ),
+                key=str.casefold,
+            )
+    except (OSError, zipfile.BadZipFile) as error:
+        logger.exception("Cannot read APK file list for %s", analysis_id)
+        raise HTTPException(status_code=500, detail="Gagal membaca daftar file APK") from error
+    return {
+        "items": names[page_offset:page_offset + page_limit],
+        "total": len(names),
+        "limit": page_limit,
+        "offset": page_offset,
+    }
 
 
 @app.delete("/v1/analyses/{analysis_id}", dependencies=[Depends(require_access)])

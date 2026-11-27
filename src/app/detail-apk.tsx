@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
 import {
@@ -18,6 +18,7 @@ import {
 } from "../../modules/installed-apps/src";
 
 export default function DetailApk() {
+  const router = useRouter();
   const { packageName } = useLocalSearchParams<{
     packageName?: string;
   }>();
@@ -65,6 +66,7 @@ export default function DetailApk() {
     result !== null && result.pkg === packageName ? result.info : null;
   const libraries = apkInfo?.nativeLibs ?? [];
   const allFiles = apkInfo?.allFiles ?? [];
+  const dexFiles = allFiles.filter((file) => /^classes(?:[0-9]+)?\.dex$/i.test(file));
   const loading =
     !!packageName && (result === null || result.pkg !== packageName);
   const error = !packageName
@@ -91,8 +93,8 @@ export default function DetailApk() {
     lines.push("Native libraries:");
     libraries.forEach((l) => lines.push(`- ${l}`));
     lines.push("");
-    lines.push("Semua file di dalam APK:");
-    allFiles.forEach((f) => lines.push(`- ${f}`));
+    lines.push(`Jumlah seluruh file: ${allFiles.length}`);
+    lines.push(`File DEX: ${dexFiles.join(", ") || "Tidak ditemukan"}`);
     lines.push("");
     lines.push("Permissions:");
     apkInfo.permissions.forEach((p) => lines.push(`- ${p}`));
@@ -164,16 +166,23 @@ export default function DetailApk() {
               ))
             )}
 
-            <Text style={styles.sectionTitle}>Semua file di dalam APK</Text>
-            {allFiles.length === 0 ? (
-              <Text style={styles.empty}>Tidak ada file yang ditemukan.</Text>
+            <Text style={styles.sectionTitle}>File DEX</Text>
+            {dexFiles.length === 0 ? (
+              <Text style={styles.empty}>File DEX tidak ditemukan.</Text>
             ) : (
-              allFiles.map((file, index) => (
-                <View key={`${file}-${index}`} style={styles.row}>
+              dexFiles.map((file) => (
+                <View key={file} style={styles.row}>
                   <Text style={styles.item}>{file}</Text>
                 </View>
               ))
             )}
+            <InfoRow label="Jumlah seluruh file" value={String(allFiles.length)} />
+            <Pressable
+              onPress={() => router.push({ pathname: "/file-explorer", params: { packageName } })}
+              style={styles.explorerButton}
+            >
+              <Text style={styles.explorerButtonText}>Jelajahi semua file APK</Text>
+            </Pressable>
             <Text style={styles.sectionTitle}>Permissions</Text>
             {apkInfo.permissions.length === 0 ? (
               <Text style={styles.empty}>
@@ -235,6 +244,8 @@ const styles = StyleSheet.create({
   copyButtonPressed: {
     opacity: 0.7,
   },
+  explorerButton: { backgroundColor: "#26334D", borderRadius: 10, padding: 13, alignItems: "center", marginTop: 10 },
+  explorerButtonText: { color: "#8EAEFF", fontSize: 13, fontWeight: "700" },
   copyButtonText: {
     color: "#FFFFFF",
     fontSize: 13,
