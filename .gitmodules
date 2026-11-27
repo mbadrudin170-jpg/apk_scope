@@ -14,7 +14,7 @@
 	path = .vscode
 	url = https://github.com/mbadrudin170-jpg/.vscode.git
 	branch = main
-[submodule ".prettierrc"]
-	branch = main
-	path = .prettierrc
+[submodule "prettierrc"]
+	path = prettierrc
 	url = https://github.com/mbadrudin170-jpg/.prettierrc.git
+	branch = main
