@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
 import {
@@ -180,9 +180,20 @@ export default function DetailApk() {
                 data={allFiles}
                 keyExtractor={(item, index) => `${item}-${index}`}
                 renderItem={({ item }) => (
-                  <View style={styles.row}>
+                  <Pressable
+                    onPress={() =>
+                      router.push({
+                        pathname: "/detail-kode",
+                        params: { file: item },
+                      })
+                    }
+                    style={({ pressed }) => [
+                      styles.row,
+                      pressed && styles.buttonPressed,
+                    ]}
+                  >
                     <Text style={styles.item}>{item}</Text>
-                  </View>
+                  </Pressable>
                 )}
                 scrollEnabled={false}
               />
