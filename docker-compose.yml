@@ -11,6 +11,9 @@ services:
     depends_on:
       mobsf:
         condition: service_started
+    networks:
+      - ingress
+      - analysis
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -25,7 +28,10 @@ services:
       - ./backend/.env
     image: opensecurity/mobile-security-framework-mobsf:latest
     environment:
+      MOBSF_API_ONLY: "1"
       MOBSF_ANALYZER_IDENTIFIER: apk-scope-private
+    networks:
+      - analysis
     expose:
       - "8000"
     volumes:
@@ -33,6 +39,11 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+
+networks:
+  ingress:
+  analysis:
+    internal: true
 
 volumes:
   apk_scope_data:
