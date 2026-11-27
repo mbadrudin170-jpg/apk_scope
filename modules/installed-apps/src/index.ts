@@ -18,6 +18,7 @@ export type ApkInfo = {
   targetSdk: number;
   permissions: string[];
   nativeLibs: string[];
+  allFiles: string[];
   apkFiles: string[];
   splitApkCount: number;
 };

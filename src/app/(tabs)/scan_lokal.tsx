@@ -53,6 +53,7 @@ export default function ScanLokal() {
         `minSdk: ${info.minSdk} · targetSdk: ${info.targetSdk}`,
         `Permissions: ${info.permissions.length}`,
         `Native libs: ${info.nativeLibs.length}`,
+        `Semua file: ${info.allFiles?.length ?? 0}`,
         `File APK: ${info.apkFiles.length}`,
       ].join("\n");
 

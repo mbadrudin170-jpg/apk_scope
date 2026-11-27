@@ -186,7 +186,8 @@ class InstalledAppsModule : Module() {
       "targetSdk" to (appInfo?.targetSdkVersion ?: 0),
       "permissions" to (archiveInfo.requestedPermissions?.toList() ?: emptyList<String>()),
       "nativeLibs" to readNativeLibraries(existingPaths).sorted(),
-      "apkFiles" to existingPaths.map { File(it).name },
+      "allFiles" to readAllFiles(existingPaths).sorted(),
+      "apkFiles" to existingPaths.map { File(it).name },"
       "splitApkCount" to (existingPaths.size - 1).coerceAtLeast(0),
     )
   }
@@ -215,5 +216,27 @@ class InstalledAppsModule : Module() {
     }
 
     return libraries
+  }
+
+  private fun readAllFiles(apkPaths: List<String>): Set<String> {
+    val files = mutableSetOf<String>()
+
+    apkPaths.forEach { apkPath ->
+      try {
+        ZipFile(apkPath).use { zip ->
+          val entries = zip.entries()
+          while (entries.hasMoreElements()) {
+            val entry = entries.nextElement()
+            if (!entry.isDirectory) {
+              files.add(entry.name)
+            }
+          }
+        }
+      } catch (error: Exception) {
+        // Skip unreadable APK parts; metadata remains available from the base APK.
+      }
+    }
+
+    return files
   }
 }

@@ -60,7 +60,8 @@ export default function DetailApk() {
 
   const apkInfo =
     result !== null && result.pkg === packageName ? result.info : null;
-  const libraries = apkInfo?.nativeLibs ?? [];
+    const libraries = apkInfo?.nativeLibs ?? [];
+    const allFiles = apkInfo?.allFiles ?? [];
   const loading =
     !!packageName && (result === null || result.pkg !== packageName);
   const error = !packageName
@@ -111,19 +112,23 @@ export default function DetailApk() {
                 Tidak ada library native yang ditemukan.
               </Text>
             ) : (
-              libraries.map((item, index) => {
-                console.log(item);
-                console.log(libraries);
-
-                return (
-                  <View key={`${item}-${index}`} style={styles.row}>
-                    <Text style={styles.item}>{item}</Text>
-                  </View>
-                );
-              })
+              libraries.map((item, index) => (
+                <View key={`${item}-${index}`} style={styles.row}>
+                  <Text style={styles.item}>{item}</Text>
+                </View>
+              ))
             )}
 
-            <Text style={styles.sectionTitle}>Permissions</Text>
+            <Text style={styles.sectionTitle}>Semua file di dalam APK</Text>
+            {allFiles.length === 0 ? (
+              <Text style={styles.empty}>Tidak ada file yang ditemukan.</Text>
+            ) : (
+              allFiles.map((file, index) => (
+                <View key={`${file}-${index}`} style={styles.row}>
+                  <Text style={styles.item}>{file}</Text>
+                </View>
+              ))
+            )}
             {apkInfo.permissions.length === 0 ? (
               <Text style={styles.empty}>
                 Tidak ada permission yang tercatat.
