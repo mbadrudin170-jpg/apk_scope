@@ -4,3 +4,6 @@
 [submodule ".agents"]
 	path = .agents
 	url = https://github.com/mbadrudin170-jpg/.agents.git
+[submodule ".kilo"]
+	path = .kilo
+	url = https://github.com/mbadrudin170-jpg/.kilo.git
