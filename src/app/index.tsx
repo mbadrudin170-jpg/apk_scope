@@ -13,13 +13,13 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, UploadType } from 'expo-file-system';
 
 import {
-  AnalysisItem,
   fetchAnalyses,
   fetchAnalysis,
   uploadUrl,
 } from '@/services/api/client';
+import type { AnalysisItem } from '@/services/api/client';
 
-const DEFAULT_API_URL = 'http://192.168.1.10:8000';
+const DEFAULT_API_URL = '';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -48,6 +48,10 @@ export default function HomeScreen() {
   const [error, setError] = useState('');
 
   const refresh = useCallback(async () => {
+    if (!apiUrl.trim()) {
+      setError('');
+      return;
+    }
     try {
       const items = await fetchAnalyses(apiUrl, apiToken);
       setAnalyses(items);
