@@ -1,4 +1,3 @@
-import asyncio
 import hashlib
 import json
 import httpx
@@ -35,7 +34,7 @@ def require_access(
     config: Settings = Depends(get_settings),
 ) -> None:
     if not config.app_api_token:
-        return
+        raise HTTPException(status_code=503, detail="APP_API_TOKEN belum dikonfigurasi di backend/.env")
     expected = f"Bearer {config.app_api_token}"
     if authorization != expected:
         raise HTTPException(status_code=401, detail="Token API tidak valid")
