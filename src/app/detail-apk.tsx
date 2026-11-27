@@ -16,6 +16,7 @@ export default function DetailApk() {
     packageName?: string;
   }>();
   const [libraries, setLibraries] = useState<string[]>([]);
+  console.log(libraries);
   const [loading, setLoading] = useState(!!packageName);
   const [error, setError] = useState(
     packageName ? "" : "Package tidak tersedia.",
@@ -56,7 +57,6 @@ export default function DetailApk() {
       <View style={styles.container}>
         <Text style={styles.title}>Detail APK</Text>
         {packageName ? <Text style={styles.sub}>{packageName}</Text> : null}
-
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color="#FFFFFF" />
@@ -72,11 +72,16 @@ export default function DetailApk() {
                 Tidak ada library native yang ditemukan.
               </Text>
             }
-            renderItem={({ item }) => (
-              <View style={styles.row}>
-                <Text style={styles.lib}>{item}</Text>
-              </View>
-            )}
+            renderItem={({ item }) => {
+              console.log(item);
+              console.log(libraries);
+
+              return (
+                <View style={styles.row}>
+                  <Text style={styles.lib}>{item}</Text>
+                </View>
+              );
+            }}
           />
         )}
       </View>
