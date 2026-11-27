@@ -63,9 +63,12 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a -Pandroid.injected.build.abi=arm64-v8a
 
+      - name: List APK outputs
+        run: find android/app/build/outputs -name '*.apk' -print
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: apk-development-arm64
-          path: android/app/build/outputs/apk/**/*.apk
+          path: android/app/build/outputs/**/*.apk
           if-no-files-found: error
