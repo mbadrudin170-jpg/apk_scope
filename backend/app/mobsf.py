@@ -36,7 +36,7 @@ class MobSFClient:
             scan = await client.post(
                 f"{self.base_url}/api/v1/scan",
                 headers=headers,
-                data={"hash": file_hash, "scan_type": "apk"},
+                data={"hash": file_hash},
             )
             self._raise_for_status(scan, "MobSF scan")
 
