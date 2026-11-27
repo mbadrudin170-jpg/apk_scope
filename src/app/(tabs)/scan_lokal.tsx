@@ -25,6 +25,7 @@ export default function ScanLokal() {
   const [analyzing, setAnalyzing] = useState(false);
 
   const analyzeApk = async () => {
+    setAnalyzing(true);
     try {
       const selection = await DocumentPicker.getDocumentAsync({
         type: "application/vnd.android.package-archive",
@@ -32,26 +33,34 @@ export default function ScanLokal() {
         multiple: false,
       });
       if (selection.canceled) return;
+
       const asset = selection.assets[0];
-      setAnalyzing(true);
-      const info = await getApkInfo(asset.uri);
-      if (!info) {
-        Alert.alert("Gagal", "APK tidak dapat dibaca.");
+      if (!asset) {
+        Alert.alert("Gagal", "File APK tidak ditemukan.");
         return;
       }
-      const text = [
+
+      const info = await getApkInfo(asset.uri);
+      if (!info) {
+        Alert.alert("Gagal", "APK tidak valid atau tidak dapat dibaca.");
+        return;
+      }
+
+      const resultText = [
         `Nama: ${info.appName}`,
         `Package: ${info.packageName}`,
         `Versi: ${info.versionName ?? "-"} (${info.versionCode})`,
-        `minSdk: ${info.minSdk} targetSdk: ${info.targetSdk}`,
+        `minSdk: ${info.minSdk} · targetSdk: ${info.targetSdk}`,
         `Permissions: ${info.permissions.length}`,
-        `Native libs: ${info.nativeLibs.join(", ") || "-"}`,
+        `Native libs: ${info.nativeLibs.length}`,
+        `File APK: ${info.apkFiles.length}`,
       ].join("\n");
-      Alert.alert("Hasil analisis on-device", text);
+
+      Alert.alert("Hasil analisis APK", resultText);
     } catch (cause) {
       Alert.alert(
         "Gagal",
-        cause instanceof Error ? cause.message : "Analisis gagal",
+        cause instanceof Error ? cause.message : "Analisis APK gagal.",
       );
     } finally {
       setAnalyzing(false);
@@ -107,10 +116,10 @@ export default function ScanLokal() {
             <Pressable
               onPress={() => void analyzeApk()}
               disabled={analyzing}
-              style={styles.analyzeButton}
+              style={[styles.analyzeButton, analyzing && styles.disabledButton]}
             >
               <Text style={styles.analyzeText}>
-                {analyzing ? "Menganalisis..." : "Analisis APK (on-device)"}
+                {analyzing ? "Menganalisis..." : "Analisis file APK"}
               </Text>
             </Pressable>
 
@@ -172,5 +181,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
+  disabledButton: { opacity: 0.6 },
   analyzeText: { color: "#FFFFFF", fontWeight: "700" },
 });

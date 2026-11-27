@@ -18,12 +18,15 @@ export type ApkInfo = {
   targetSdk: number;
   permissions: string[];
   nativeLibs: string[];
+  apkFiles: string[];
+  splitApkCount: number;
 };
 
 type InstalledAppsNativeModule = {
   getInstalledApps(includeSystem: boolean): Promise<InstalledApp[]>;
   getAppLibraries(packageName: string): Promise<string[]>;
-  getApkInfo(apkPath: string): Promise<ApkInfo | null>;
+  getApkInfo(apkUri: string): Promise<ApkInfo | null>;
+  getInstalledApkInfo(packageName: string): Promise<ApkInfo | null>;
 };
 
 const InstalledApps =
@@ -44,12 +47,22 @@ export function getAppLibraries(packageName: string): Promise<string[]> {
   return InstalledApps.getAppLibraries(packageName);
 }
 
-export function getApkInfo(apkPath: string): Promise<ApkInfo | null> {
+export function getApkInfo(apkUri: string): Promise<ApkInfo | null> {
   if (typeof InstalledApps.getApkInfo !== "function") {
     return Promise.reject(
       new Error("Fitur ini memerlukan build development terbaru."),
     );
   }
-  return InstalledApps.getApkInfo(apkPath);
+  return InstalledApps.getApkInfo(apkUri);
 }
 
+export function getInstalledApkInfo(
+  packageName: string,
+): Promise<ApkInfo | null> {
+  if (typeof InstalledApps.getInstalledApkInfo !== "function") {
+    return Promise.reject(
+      new Error("Fitur ini memerlukan build development terbaru."),
+    );
+  }
+  return InstalledApps.getInstalledApkInfo(packageName);
+}

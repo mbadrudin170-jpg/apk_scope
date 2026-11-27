@@ -11,6 +11,11 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipFile
 
+private data class ResolvedApkPath(
+  val path: String,
+  val temporaryFile: File? = null,
+)
+
 class InstalledAppsModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("InstalledApps")
@@ -52,110 +57,163 @@ class InstalledAppsModule : Module() {
       val context = appContext.reactContext
         ?: return@AsyncFunction emptyList<String>()
 
-      val pm = context.packageManager
       val appInfo = try {
-        pm.getApplicationInfo(packageName, 0)
+        context.packageManager.getApplicationInfo(packageName, 0)
       } catch (error: PackageManager.NameNotFoundException) {
         null
       } ?: return@AsyncFunction emptyList<String>()
 
-      val libs = mutableSetOf<String>()
-      try {
-        ZipFile(appInfo.sourceDir).use { zip ->
-          val entries = zip.entries()
-          while (entries.hasMoreElements()) {
-            val entry = entries.nextElement()
-            if (!entry.isDirectory && entry.name.startsWith("lib/") && entry.name.endsWith(".so")) {
-              libs.add(entry.name.substringAfterLast('/'))
-            }
-          }
-        }
-      } catch (error: Exception) {
-        // ignore
-      }
+      val apkPaths = (listOf(appInfo.sourceDir) + appInfo.splitSourceDirs.orEmpty().toList())
+        .filter { File(it).isFile }
 
-      libs.sorted()
+      readNativeLibraries(apkPaths).sorted()
     }
 
     AsyncFunction("getApkInfo") { apkUri: String ->
       val context = appContext.reactContext
         ?: return@AsyncFunction null
 
-      val pm = context.packageManager
+      val resolved = resolveApkPath(context, apkUri)
+        ?: return@AsyncFunction null
 
-      val apkPath = if (apkUri.startsWith("content://")) {
-        val uri = Uri.parse(apkUri)
+      try {
+        readApkInfo(context, listOf(resolved.path))
+      } finally {
+        resolved.temporaryFile?.delete()
+      }
+    }
+
+    AsyncFunction("getInstalledApkInfo") { packageName: String ->
+      val context = appContext.reactContext
+        ?: return@AsyncFunction null
+
+      val appInfo = try {
+        context.packageManager.getApplicationInfo(packageName, 0)
+      } catch (error: PackageManager.NameNotFoundException) {
+        null
+      } ?: return@AsyncFunction null
+
+      val apkPaths = (listOf(appInfo.sourceDir) + appInfo.splitSourceDirs.orEmpty().toList())
+        .filter { File(it).isFile }
+
+      readApkInfo(context, apkPaths)
+    }
+  }
+
+  private fun resolveApkPath(
+    context: android.content.Context,
+    rawUri: String,
+  ): ResolvedApkPath? {
+    val uri = Uri.parse(rawUri)
+
+    return when (uri.scheme) {
+      "content" -> {
         val input = try {
           context.contentResolver.openInputStream(uri)
         } catch (error: Exception) {
           null
-        } ?: return@AsyncFunction null
-        val outFile = File(context.cacheDir, "apk_scope_analysis.apk")
+        } ?: return null
+
+        val temporaryFile = try {
+          File.createTempFile("apk_scope_", ".apk", context.cacheDir)
+        } catch (error: Exception) {
+          input.close()
+          return null
+        }
+
         try {
-          input.use { ins ->
-            FileOutputStream(outFile).use { outs ->
-              ins.copyTo(outs)
+          input.use { source ->
+            FileOutputStream(temporaryFile).use { destination ->
+              source.copyTo(destination)
             }
           }
+          ResolvedApkPath(temporaryFile.absolutePath, temporaryFile)
         } catch (error: Exception) {
-          return@AsyncFunction null
+          temporaryFile.delete()
+          null
         }
-        outFile.absolutePath
-      } else {
-        apkUri
       }
+      "file" -> uri.path
+        ?.takeIf { File(it).isFile }
+        ?.let { ResolvedApkPath(it) }
+      null -> rawUri
+        .takeIf { File(it).isFile }
+        ?.let { ResolvedApkPath(it) }
+      else -> null
+    }
+  }
 
-      val archiveInfo = try {
-        pm.getPackageArchiveInfo(
-          apkPath,
-          PackageManager.GET_PERMISSIONS or PackageManager.GET_META_DATA,
-        )
-      } catch (error: Exception) {
-        null
-      } ?: return@AsyncFunction null
+  private fun readApkInfo(
+    context: android.content.Context,
+    apkPaths: List<String>,
+  ): Map<String, Any?>? {
+    val existingPaths = apkPaths.filter { File(it).isFile }
+    val baseApkPath = existingPaths.firstOrNull() ?: return null
+    val pm = context.packageManager
 
-      val appInfo = archiveInfo.applicationInfo
-      if (appInfo != null) {
-        appInfo.sourceDir = apkPath
-        appInfo.publicSourceDir = apkPath
-      }
+    val archiveInfo = try {
+      pm.getPackageArchiveInfo(
+        baseApkPath,
+        PackageManager.GET_PERMISSIONS or PackageManager.GET_META_DATA,
+      )
+    } catch (error: Exception) {
+      null
+    } ?: return null
 
-      val appName = try {
-        appInfo?.let { pm.getApplicationLabel(it).toString() }
-      } catch (error: Exception) {
-        null
-      } ?: archiveInfo.packageName
+    val appInfo = archiveInfo.applicationInfo
+    if (appInfo != null) {
+      appInfo.sourceDir = baseApkPath
+      appInfo.publicSourceDir = baseApkPath
+    }
 
-      val versionCode = when {
-        Build.VERSION.SDK_INT >= VERSION_CODES.P -> archiveInfo.longVersionCode
-        else -> archiveInfo.versionCode.toLong()
-      }
+    val appName = try {
+      appInfo?.let { pm.getApplicationLabel(it).toString() }
+    } catch (error: Exception) {
+      null
+    } ?: archiveInfo.packageName
 
-      val nativeLibs = mutableSetOf<String>()
+    val versionCode = when {
+      Build.VERSION.SDK_INT >= VERSION_CODES.P -> archiveInfo.longVersionCode
+      else -> archiveInfo.versionCode.toLong()
+    }
+
+    return mapOf(
+      "packageName" to archiveInfo.packageName,
+      "appName" to appName,
+      "versionName" to archiveInfo.versionName,
+      "versionCode" to versionCode,
+      "minSdk" to (appInfo?.minSdkVersion ?: 0),
+      "targetSdk" to (appInfo?.targetSdkVersion ?: 0),
+      "permissions" to (archiveInfo.requestedPermissions?.toList() ?: emptyList<String>()),
+      "nativeLibs" to readNativeLibraries(existingPaths).sorted(),
+      "apkFiles" to existingPaths.map { File(it).name },
+      "splitApkCount" to (existingPaths.size - 1).coerceAtLeast(0),
+    )
+  }
+
+  private fun readNativeLibraries(apkPaths: List<String>): Set<String> {
+    val libraries = mutableSetOf<String>()
+
+    apkPaths.forEach { apkPath ->
       try {
         ZipFile(apkPath).use { zip ->
           val entries = zip.entries()
           while (entries.hasMoreElements()) {
             val entry = entries.nextElement()
-            if (!entry.isDirectory && entry.name.startsWith("lib/") && entry.name.endsWith(".so")) {
-              nativeLibs.add(entry.name.substringAfterLast('/'))
+            if (
+              !entry.isDirectory &&
+              entry.name.startsWith("lib/") &&
+              entry.name.endsWith(".so")
+            ) {
+              libraries.add(entry.name.substringAfterLast('/'))
             }
           }
         }
       } catch (error: Exception) {
-        // ignore
+        // Skip unreadable APK parts; metadata remains available from the base APK.
       }
-
-      mapOf(
-        "packageName" to archiveInfo.packageName,
-        "appName" to appName,
-        "versionName" to archiveInfo.versionName,
-        "versionCode" to versionCode,
-        "minSdk" to (appInfo?.minSdkVersion ?: 0),
-        "targetSdk" to (appInfo?.targetSdkVersion ?: 0),
-        "permissions" to (archiveInfo.requestedPermissions?.toList() ?: emptyList<String>()),
-        "nativeLibs" to nativeLibs.sorted(),
-      )
     }
+
+    return libraries
   }
 }
