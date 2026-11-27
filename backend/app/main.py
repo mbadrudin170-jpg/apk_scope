@@ -256,7 +256,7 @@ def get_dex_classes(
     return {"items": items, "total": total, "limit": page_limit, "offset": page_offset}
 
 
-@app.get("/v1/analyses/{analysis_id}/dex/classes/{class_name:path}/methods", dependencies=[Depends(require_access)])
+@app.get("/v1/analyses/{analysis_id}/dex/methods", dependencies=[Depends(require_access)])
 def get_dex_methods(analysis_id: str, class_name: str) -> dict[str, Any]:
     _require_analysis(analysis_id)
     methods = database.dex_methods(analysis_id, class_name)

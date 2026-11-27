@@ -224,7 +224,7 @@ Setelah analisis selesai, API menyediakan:
 - `GET /v1/analyses/{id}/dex` — ringkasan file DEX, package, class, method, library, dan peringatan.
 - `GET /v1/analyses/{id}/dex/packages?q=&limit=&offset=` — daftar package berpaginasi.
 - `GET /v1/analyses/{id}/dex/classes?q=&package=&limit=&offset=` — daftar class berpaginasi.
-- `GET /v1/analyses/{id}/dex/classes/{class_name}/methods` — method dari class terpilih.
+- `GET /v1/analyses/{id}/dex/methods?class_name=` — method dari class terpilih.
 - `GET /v1/analyses/{id}/dex/libraries?q=&limit=&offset=` — signature library dengan bukti class.
 - `GET /v1/analyses/{id}/files?q=&limit=&offset=` — File Explorer arsip APK.
 

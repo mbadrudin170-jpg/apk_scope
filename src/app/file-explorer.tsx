@@ -86,7 +86,7 @@ export default function FileExplorer() {
             <View style={styles.pagination}>
               <Text onPress={() => setPage(Math.max(0, page - 1))} style={[styles.button, page === 0 && styles.disabled]}>Sebelumnya</Text>
               <Text style={styles.count}>Halaman {page + 1} / {Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))}</Text>
-              <Text onPress={() => setPage(Math.min(Math.ceil(filtered.length / PAGE_SIZE) - 1, page + 1))} style={[styles.button, (page + 1) * PAGE_SIZE >= filtered.length && styles.disabled]}>Berikutnya</Text>
+              <Text onPress={() => setPage(Math.min(Math.max(0, Math.ceil(filtered.length / PAGE_SIZE) - 1), page + 1))} style={[styles.button, (page + 1) * PAGE_SIZE >= filtered.length && styles.disabled]}>Berikutnya</Text>
             </View>
           </>
         )}
