@@ -59,16 +59,44 @@ jobs:
 
       - name: Build APK (arm64-v8a)
         run: |
+          chmod +x android/gradlew
           cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a -Pandroid.injected.build.abi=arm64-v8a -Pandroid.kotlinVersion=2.2.10
+          ./gradlew :app:assembleDebug --no-daemon -PreactNativeArchitectures=arm64-v8a -Pandroid.injected.build.abi=arm64-v8a -Pandroid.kotlinVersion=2.2.10
 
-      - name: List APK outputs
-        run: find android/app/build/outputs -name '*.apk' -print
+      - name: Collect APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+
+          echo "=== Android app build outputs ==="
+          if [ -d android/app/build/outputs ]; then
+            find android/app/build/outputs -maxdepth 6 -type f -print
+          else
+            echo "android/app/build/outputs directory does not exist"
+          fi
+
+          echo "=== Search APK files in workspace ==="
+          mapfile -t APK_FILES < <(find "$GITHUB_WORKSPACE" -type f -name '*.apk' -not -path '*/.gradle/*' -print)
+
+          if [ "${#APK_FILES[@]}" -eq 0 ]; then
+            echo "::error::Gradle completed, but no APK file exists anywhere in the workspace."
+            echo "=== App build directory ==="
+            find android/app/build -maxdepth 5 -type d -print 2>/dev/null || true
+            exit 1
+          fi
+
+          for apk in "${APK_FILES[@]}"; do
+            echo "Found: $apk"
+            cp "$apk" artifacts/
+          done
+
+          echo "=== Collected APK files ==="
+          ls -lh artifacts/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: apk-development-arm64
-          path: android/app/build/outputs/**/*.apk
+          path: artifacts/*.apk
           if-no-files-found: error
