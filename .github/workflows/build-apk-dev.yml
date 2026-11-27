@@ -12,8 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
+        # This Expo build does not use the repository's tooling submodules.
+        # Avoid fetching stale submodule SHAs during CI checkout.
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
