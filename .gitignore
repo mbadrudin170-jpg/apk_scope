@@ -31,7 +31,16 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.*
+!.env.example
+backend/.env
 .env*.local
+
+# local APK analysis data
+backend/data/
+data/
+
 
 # typescript
 *.tsbuildinfo
