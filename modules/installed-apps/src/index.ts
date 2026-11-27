@@ -24,6 +24,11 @@ export function getInstalledApps(
 }
 
 export function getAppLibraries(packageName: string): Promise<string[]> {
+  if (typeof InstalledApps.getAppLibraries !== "function") {
+    return Promise.reject(
+      new Error("Fitur ini memerlukan build development terbaru."),
+    );
+  }
   return InstalledApps.getAppLibraries(packageName);
 }
 
