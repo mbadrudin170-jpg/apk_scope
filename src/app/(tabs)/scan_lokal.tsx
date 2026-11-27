@@ -2,16 +2,18 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
 
 import {
   getInstalledApps,
   type InstalledApp,
-} from "../../modules/installed-apps/src";
+} from "../../../modules/installed-apps/src";
 
 export default function ScanLokal() {
   const [apps, setApps] = useState<InstalledApp[]>([]);
@@ -75,13 +77,22 @@ export default function ScanLokal() {
                 )
               }
               renderItem={({ item }) => (
-                <View style={styles.row}>
-                  <Text style={styles.name}>{item.appName}</Text>
-                  <Text style={styles.sub}>
-                    {item.packageName} ·{" "}
-                    {item.versionName ?? "Versi tidak diketahui"}
-                  </Text>
-                </View>
+                <Pressable
+                  onPress={() =>
+                    router.push({
+                      pathname: "/detail-apk",
+                      params: { packageName: item.packageName },
+                    })
+                  }
+                >
+                  <View style={styles.row}>
+                    <Text style={styles.name}>{item.appName}</Text>
+                    <Text style={styles.sub}>
+                      {item.packageName} ·{" "}
+                      {item.versionName ?? "Versi tidak diketahui"}
+                    </Text>
+                  </View>
+                </Pressable>
               )}
             />
           </>
