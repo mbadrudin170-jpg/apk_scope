@@ -1,14 +1,14 @@
 import asyncio
 import hashlib
+import json
+import httpx
 import logging
 import uuid
 import zipfile
-from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
 
 from .config import Settings, get_settings
 from .database import AnalysisDatabase, utc_now
@@ -25,14 +25,6 @@ app = FastAPI(
     version="0.1.0",
     description="Private API for APK Scope personal analysis.",
 )
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET", "POST", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
-)
-
-
 @app.on_event("startup")
 def initialize_database() -> None:
     database.initialize()
@@ -104,9 +96,9 @@ async def run_analysis(analysis_id: str, apk_path: Path) -> None:
             status="completed",
             progress_message="Analisis selesai",
             mobsf_hash=mobsf_hash,
-            report_json=__import__("json").dumps(report, ensure_ascii=False),
+            report_json=json.dumps(report, ensure_ascii=False),
         )
-    except (MobSFError, httpx_error_types()) as error:
+    except (MobSFError, httpx.HTTPError) as error:
         logger.exception("Analysis failed: %s", analysis_id)
         database.update(
             analysis_id,
@@ -122,11 +114,6 @@ async def run_analysis(analysis_id: str, apk_path: Path) -> None:
             progress_message="Terjadi kesalahan internal",
             error_message=str(error)[:1000],
         )
-
-
-def httpx_error_types() -> tuple[type[BaseException], ...]:
-    import httpx
-    return (httpx.HTTPError,)
 
 
 @app.get("/health")
