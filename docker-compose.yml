@@ -1,0 +1,49 @@
+services:
+  api:
+    build:
+      context: ./backend
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - apk_scope_data:/data
+    depends_on:
+      mobsf:
+        condition: service_started
+    networks:
+      - ingress
+      - analysis
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  mobsf:
+    env_file:
+      - ./backend/.env
+    image: opensecurity/mobile-security-framework-mobsf:latest
+    environment:
+      MOBSF_API_ONLY: "1"
+    networks:
+      - analysis
+    expose:
+      - "8000"
+    volumes:
+      - mobsf_data:/home/mobsf/.MobSF
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  ingress:
+  analysis:
+    internal: true
+
+volumes:
+  apk_scope_data:
+  mobsf_data:
