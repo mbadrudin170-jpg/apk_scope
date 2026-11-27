@@ -1,0 +1,7 @@
+{
+  "name": "installed-apps",
+  "platforms": ["android"],
+  "android": {
+    "packageName": "expo.modules.installedapps"
+  }
+}
