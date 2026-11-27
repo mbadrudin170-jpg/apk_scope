@@ -15,7 +15,7 @@ import {
 
 import type { AnalysisItem } from "@/services/api/client";
 import { setApiConfig } from "@/services/api/config";
-import { fetchAnalyses, fetchAnalysis, uploadUrl } from "@/services/api/client";
+import { fetchAnalyses, uploadUrl } from "@/services/api/client";
 
 const DEFAULT_API_URL = "";
 
