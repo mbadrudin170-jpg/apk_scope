@@ -11,6 +11,7 @@ export type InstalledApp = {
 
 type InstalledAppsNativeModule = {
   getInstalledApps(includeSystem: boolean): Promise<InstalledApp[]>;
+  getAppLibraries(packageName: string): Promise<string[]>;
 };
 
 const InstalledApps =
@@ -20,5 +21,9 @@ export function getInstalledApps(
   includeSystem = false,
 ): Promise<InstalledApp[]> {
   return InstalledApps.getInstalledApps(includeSystem);
+}
+
+export function getAppLibraries(packageName: string): Promise<string[]> {
+  return InstalledApps.getAppLibraries(packageName);
 }
 

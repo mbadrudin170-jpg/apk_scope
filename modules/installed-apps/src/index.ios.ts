@@ -12,3 +12,9 @@ export async function getInstalledApps(
 ): Promise<InstalledApp[]> {
   throw new Error("Pemindaian aplikasi terpasang hanya tersedia di Android.");
 }
+
+export async function getAppLibraries(
+  _packageName: string,
+): Promise<string[]> {
+  throw new Error("Pemindaian aplikasi terpasang hanya tersedia di Android.");
+}

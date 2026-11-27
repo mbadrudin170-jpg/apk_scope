@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Build.VERSION_CODES
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import java.util.zip.ZipFile
 
 class InstalledAppsModule : Module() {
   override fun definition() = ModuleDefinition {
@@ -42,6 +43,35 @@ class InstalledAppsModule : Module() {
             "apkPath" to app.sourceDir
           )
         }
+    }
+
+    AsyncFunction("getAppLibraries") { packageName: String ->
+      val context = appContext.reactContext
+        ?: return@AsyncFunction emptyList<String>()
+
+      val pm = context.packageManager
+      val appInfo = try {
+        pm.getApplicationInfo(packageName, 0)
+      } catch (error: PackageManager.NameNotFoundException) {
+        null
+      } ?: return@AsyncFunction emptyList<String>()
+
+      val libs = mutableSetOf<String>()
+      try {
+        ZipFile(appInfo.sourceDir).use { zip ->
+          val entries = zip.entries()
+          while (entries.hasMoreElements()) {
+            val entry = entries.nextElement()
+            if (!entry.isDirectory && entry.name.startsWith("lib/") && entry.name.endsWith(".so")) {
+              libs.add(entry.name.substringAfterLast('/'))
+            }
+          }
+        }
+      } catch (error: Exception) {
+        // ignore
+      }
+
+      libs.sorted()
     }
   }
 }
