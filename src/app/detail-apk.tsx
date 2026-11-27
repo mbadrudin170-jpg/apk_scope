@@ -18,46 +18,56 @@ export default function DetailApk() {
   const { packageName } = useLocalSearchParams<{
     packageName?: string;
   }>();
-  const [apkInfo, setApkInfo] = useState<ApkInfo | null>(null);
-  const [libraries, setLibraries] = useState<string[]>([]);
-  console.log(libraries);
-  const [loading, setLoading] = useState(!!packageName);
-  const [error, setError] = useState(
-    packageName ? "" : "Package tidak tersedia.",
-  );
+  const [result, setResult] = useState<{
+    pkg: string;
+    info: ApkInfo | null;
+    error: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!packageName) return;
 
     let mounted = true;
-    setLoading(true);
-    setError("");
 
     getInstalledApkInfo(packageName)
       .then((info) => {
         if (!mounted) return;
         if (!info) {
-          setError("Informasi APK tidak dapat dibaca.");
+          setResult({
+            pkg: packageName,
+            info: null,
+            error: "Informasi APK tidak dapat dibaca.",
+          });
           return;
         }
-        setApkInfo(info);
-        setLibraries(info.nativeLibs);
+        setResult({ pkg: packageName, info, error: "" });
       })
       .catch((cause: unknown) => {
         if (mounted) {
-          setError(
-            cause instanceof Error ? cause.message : "Gagal menganalisis APK",
-          );
+          setResult({
+            pkg: packageName,
+            info: null,
+            error:
+              cause instanceof Error ? cause.message : "Gagal menganalisis APK",
+          });
         }
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
       });
 
     return () => {
       mounted = false;
     };
   }, [packageName]);
+
+  const apkInfo =
+    result !== null && result.pkg === packageName ? result.info : null;
+  const libraries = apkInfo?.nativeLibs ?? [];
+  const loading =
+    !!packageName && (result === null || result.pkg !== packageName);
+  const error = !packageName
+    ? "Package tidak tersedia."
+    : result !== null && result.pkg === packageName
+      ? result.error
+      : "";
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -79,8 +89,14 @@ export default function DetailApk() {
             <InfoRow label="Version code" value={String(apkInfo.versionCode)} />
             <InfoRow label="Minimum SDK" value={String(apkInfo.minSdk)} />
             <InfoRow label="Target SDK" value={String(apkInfo.targetSdk)} />
-            <InfoRow label="Jumlah split APK" value={String(apkInfo.splitApkCount)} />
-            <InfoRow label="Jumlah permission" value={String(apkInfo.permissions.length)} />
+            <InfoRow
+              label="Jumlah split APK"
+              value={String(apkInfo.splitApkCount)}
+            />
+            <InfoRow
+              label="Jumlah permission"
+              value={String(apkInfo.permissions.length)}
+            />
 
             <Text style={styles.sectionTitle}>File APK</Text>
             {apkInfo.apkFiles.map((file) => (
@@ -109,7 +125,9 @@ export default function DetailApk() {
 
             <Text style={styles.sectionTitle}>Permissions</Text>
             {apkInfo.permissions.length === 0 ? (
-              <Text style={styles.empty}>Tidak ada permission yang tercatat.</Text>
+              <Text style={styles.empty}>
+                Tidak ada permission yang tercatat.
+              </Text>
             ) : (
               apkInfo.permissions.map((permission) => (
                 <View key={permission} style={styles.row}>
