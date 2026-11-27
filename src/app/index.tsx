@@ -62,9 +62,12 @@ export default function HomeScreen() {
   }, [apiUrl, apiToken]);
 
   useEffect(() => {
-    void refresh();
+    const initial = setTimeout(() => void refresh(), 0);
     const timer = setInterval(() => void refresh(), 5000);
-    return () => clearInterval(timer);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(timer);
+    };
   }, [refresh]);
 
   const chooseAndUpload = async () => {
