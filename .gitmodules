@@ -16,3 +16,5 @@
 	branch = main
 [submodule ".prettierrc"]
 	branch = main
+	path = .prettierrc
+	url = https://github.com/mbadrudin170-jpg/.prettierrc.git
