@@ -1,9 +1,12 @@
 [submodule "script"]
 	path = script
 	url = https://github.com/mbadrudin170-jpg/script.git
+	branch = main
 [submodule ".agents"]
 	path = .agents
 	url = https://github.com/mbadrudin170-jpg/.agents.git
+	branch = main
 [submodule ".kilo"]
 	path = .kilo
 	url = https://github.com/mbadrudin170-jpg/.kilo.git
+	branch = main
