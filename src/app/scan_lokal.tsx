@@ -24,7 +24,12 @@ export default function ScanLokal() {
     getInstalledApps(false)
       .then((installedApps) => {
         if (mounted) {
-          setApps(installedApps);
+          const sorted = [...installedApps].sort((a, b) =>
+            a.appName.localeCompare(b.appName, undefined, {
+              sensitivity: "base",
+            }),
+          );
+          setApps(sorted);
           setError("");
         }
       })
@@ -63,19 +68,18 @@ export default function ScanLokal() {
               data={apps}
               keyExtractor={(item) => item.packageName}
               ListEmptyComponent={
-                error
-                  ? undefined
-                  : (
-                      <Text style={styles.empty}>
-                        Tidak ada aplikasi yang dapat ditampilkan.
-                      </Text>
-                    )
+                error ? undefined : (
+                  <Text style={styles.empty}>
+                    Tidak ada aplikasi yang dapat ditampilkan.
+                  </Text>
+                )
               }
               renderItem={({ item }) => (
                 <View style={styles.row}>
                   <Text style={styles.name}>{item.appName}</Text>
                   <Text style={styles.sub}>
-                    {item.packageName} · {item.versionName ?? "Versi tidak diketahui"}
+                    {item.packageName} ·{" "}
+                    {item.versionName ?? "Versi tidak diketahui"}
                   </Text>
                 </View>
               )}
