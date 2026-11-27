@@ -31,8 +31,10 @@ function endpoint(baseUrl: string, path: string): string {
   return `${baseUrl.replace(/\/$/, '')}${path}`;
 }
 
-export async function fetchAnalyses(baseUrl: string): Promise<AnalysisItem[]> {
-  const response = await fetch(endpoint(baseUrl, '/v1/analyses'));
+export async function fetchAnalyses(baseUrl: string, token = ''): Promise<AnalysisItem[]> {
+  const response = await fetch(endpoint(baseUrl, '/v1/analyses'), {
+    headers: token.trim() ? { Authorization: `Bearer ${token.trim()}` } : {},
+  });
   if (!response.ok) {
     throw new Error(`Gagal mengambil riwayat (${response.status})`);
   }
@@ -42,8 +44,11 @@ export async function fetchAnalyses(baseUrl: string): Promise<AnalysisItem[]> {
 export async function fetchAnalysis(
   baseUrl: string,
   id: string,
+  token = '',
 ): Promise<AnalysisItem> {
-  const response = await fetch(endpoint(baseUrl, `/v1/analyses/${id}`));
+  const response = await fetch(endpoint(baseUrl, `/v1/analyses/${id}`), {
+    headers: token.trim() ? { Authorization: `Bearer ${token.trim()}` } : {},
+  });
   if (!response.ok) {
     throw new Error(`Gagal mengambil detail analisis (${response.status})`);
   }
