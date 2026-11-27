@@ -187,12 +187,12 @@ apk_scope/
 
 - Docker Engine dan Docker Compose plugin.
 - RAM yang memadai untuk MobSF (disarankan minimal 8 GB) dan ruang disk kosong yang cukup untuk APK serta hasil analisis.
-- Server hanya dapat dijangkau dari jaringan pribadi. Jangan membuka port API atau MobSF ke internet publik.
+- Server hanya dapat dijangkau dari jaringan pribadi. Jangan membuka port API atau MobSF ke internet publik. MobSF ditempatkan pada jaringan Docker internal tanpa akses keluar; API hanya terhubung ke MobSF melalui jaringan tersebut.
 
 ### Konfigurasi backend
 
 1. Salin `backend/.env.example` menjadi `backend/.env`.
-2. Isi `MOBSF_API_KEY` dengan API key dari instalasi MobSF dan ganti `APP_API_TOKEN` dengan token acak panjang.
+2. Isi `MOBSF_API_KEY` dengan token acak panjang milikmu dan ganti `APP_API_TOKEN` dengan token acak panjang yang berbeda. Compose meneruskan `MOBSF_API_KEY` ke container MobSF sebagai API key statis.
 3. Jalankan `docker compose up -d --build` dari root repository.
 4. Periksa `http://ALAMAT_SERVER:8000/health`. Endpoint ini hanya memeriksa API dan apakah key MobSF telah diisi; bukan jaminan scan MobSF siap.
 5. Pantau log dengan `docker compose logs -f api mobsf`.
