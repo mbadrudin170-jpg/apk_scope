@@ -1,3 +1,6 @@
 [submodule "script"]
 	path = script
 	url = https://github.com/mbadrudin170-jpg/script.git
+[submodule ".agents"]
+	path = .agents
+	url = https://github.com/mbadrudin170-jpg/.agents.git
