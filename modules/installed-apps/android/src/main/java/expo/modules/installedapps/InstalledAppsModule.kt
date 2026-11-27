@@ -187,7 +187,7 @@ class InstalledAppsModule : Module() {
       "permissions" to (archiveInfo.requestedPermissions?.toList() ?: emptyList<String>()),
       "nativeLibs" to readNativeLibraries(existingPaths).sorted(),
       "allFiles" to readAllFiles(existingPaths).sorted(),
-      "apkFiles" to existingPaths.map { File(it).name },"
+      "apkFiles" to existingPaths.map { File(it).name },
       "splitApkCount" to (existingPaths.size - 1).coerceAtLeast(0),
     )
   }

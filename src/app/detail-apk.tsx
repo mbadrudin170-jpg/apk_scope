@@ -174,6 +174,7 @@ export default function DetailApk() {
                 </View>
               ))
             )}
+            <Text style={styles.sectionTitle}>Permissions</Text>
             {apkInfo.permissions.length === 0 ? (
               <Text style={styles.empty}>
                 Tidak ada permission yang tercatat.
