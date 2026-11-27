@@ -21,6 +21,8 @@ services:
       - ALL
 
   mobsf:
+    env_file:
+      - ./backend/.env
     image: opensecurity/mobile-security-framework-mobsf:latest
     environment:
       MOBSF_ANALYZER_IDENTIFIER: apk-scope-private
