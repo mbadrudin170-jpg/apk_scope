@@ -1,0 +1,63 @@
+name: Build Development APK (arm64)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: |
+          set -e
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;android-37" "build-tools;37.0.0" "ndk;27.1.12297006"
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --clean
+
+      - name: Build APK (arm64-v8a)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a -Pandroid.injected.build.abi=arm64-v8a
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-development-arm64
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
