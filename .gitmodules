@@ -6,14 +6,6 @@
 	path = .agents
 	url = https://github.com/mbadrudin170-jpg/.agents.git
 	branch = main
-[submodule ".kilo"]
-	path = .kilo
-	url = https://github.com/mbadrudin170-jpg/.kilo.git
-	branch = main
-[submodule ".vscode"]
-	path = .vscode
-	url = https://github.com/mbadrudin170-jpg/.vscode.git
-	branch = main
 [submodule "prettierrc"]
 	path = prettierrc
 	url = https://github.com/mbadrudin170-jpg/.prettierrc.git
