@@ -42,7 +42,7 @@ backend/data/
 data/
 
 # generated APK artifacts
-apk/*.apk
+# apk/*.apk
 
 # typescript
 *.tsbuildinfo
