@@ -29,7 +29,6 @@ services:
     image: opensecurity/mobile-security-framework-mobsf:latest
     environment:
       MOBSF_API_ONLY: "1"
-      MOBSF_ANALYZER_IDENTIFIER: apk-scope-private
     networks:
       - analysis
     expose:
