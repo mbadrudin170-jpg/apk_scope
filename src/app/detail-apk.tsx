@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -6,7 +7,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getAppLibraries } from "../../modules/installed-apps/src";
@@ -34,9 +34,7 @@ export default function DetailApk() {
       .catch((cause: unknown) => {
         if (mounted) {
           setError(
-            cause instanceof Error
-              ? cause.message
-              : "Gagal memuat library",
+            cause instanceof Error ? cause.message : "Gagal memuat library",
           );
         }
       })
@@ -55,9 +53,7 @@ export default function DetailApk() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Text style={styles.title}>Detail APK</Text>
-        {packageName ? (
-          <Text style={styles.sub}>{packageName}</Text>
-        ) : null}
+        {packageName ? <Text style={styles.sub}>{packageName}</Text> : null}
 
         {loading ? (
           <View style={styles.center}>
