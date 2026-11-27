@@ -18,3 +18,7 @@
 	path = prettierrc
 	url = https://github.com/mbadrudin170-jpg/.prettierrc.git
 	branch = main
+[submodule "docs"]
+	path = docs
+	url = https://github.com/mbadrudin170-jpg/docs.git
+	branch = main
