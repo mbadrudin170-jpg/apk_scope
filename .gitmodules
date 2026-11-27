@@ -10,3 +10,7 @@
 	path = .kilo
 	url = https://github.com/mbadrudin170-jpg/.kilo.git
 	branch = main
+[submodule ".vscode"]
+	path = .vscode
+	url = https://github.com/mbadrudin170-jpg/.vscode.git
+	branch = main
