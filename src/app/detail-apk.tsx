@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function DetailApk() {
@@ -7,6 +7,8 @@ export default function DetailApk() {
       <View style={styles.container}>
         <Text style={styles.title}>Detail APK</Text>
       </View>
+
+      <FlatList data={undefined} />
     </SafeAreaView>
   );
 }
