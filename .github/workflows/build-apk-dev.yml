@@ -47,8 +47,8 @@ jobs:
       - name: Prebuild Android
         run: npx expo prebuild --platform android --non-interactive
 
-      - name: Build Development APK
-        run: cd android && ./gradlew assembleDebug
+      - name: Build ARM64 Development APK
+        run: cd android && ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a
         env:
           ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
           NODE_ENV: development
