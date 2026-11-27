@@ -89,7 +89,13 @@ async def run_analysis(analysis_id: str, apk_path: Path) -> None:
     )
     try:
         client = MobSFClient(settings.mobsf_url, settings.mobsf_api_key)
-        mobsf_hash, report = await client.analyze(apk_path)
+        mobsf_hash, report = await client.analyze(
+            apk_path,
+            on_uploaded=lambda file_hash: database.update(
+                analysis_id,
+                mobsf_hash=file_hash,
+            ),
+        )
         database.update(
             analysis_id,
             status="completed",
@@ -187,10 +193,30 @@ def get_analysis(analysis_id: str) -> dict[str, Any]:
 
 
 @app.delete("/v1/analyses/{analysis_id}", dependencies=[Depends(require_access)])
-def delete_analysis(analysis_id: str) -> dict[str, bool]:
+async def delete_analysis(analysis_id: str) -> dict[str, bool]:
     result = database.get(analysis_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Analisis tidak ditemukan")
+
+    active_statuses = {"queued", "validating", "analyzing", "enriching"}
+    if result["status"] in active_statuses:
+        raise HTTPException(
+            status_code=409,
+            detail="Analisis masih berjalan. Hapus setelah status completed atau failed.",
+        )
+
+    mobsf_hash = result.get("mobsf_hash")
+    if mobsf_hash:
+        try:
+            client = MobSFClient(settings.mobsf_url, settings.mobsf_api_key)
+            await client.delete_scan(mobsf_hash)
+        except (MobSFError, httpx.HTTPError) as error:
+            logger.exception("Failed to delete MobSF scan for analysis %s", analysis_id)
+            raise HTTPException(
+                status_code=502,
+                detail="Gagal menghapus hasil di MobSF. Data lokal tidak dihapus.",
+            ) from error
+
     database.delete(analysis_id)
     (settings.app_data_dir / "uploads" / f"{analysis_id}.apk").unlink(missing_ok=True)
     return {"deleted": True}

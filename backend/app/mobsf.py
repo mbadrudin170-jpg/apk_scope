@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +15,11 @@ class MobSFClient:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
 
-    async def analyze(self, apk_path: Path) -> tuple[str, dict[str, Any]]:
+    async def analyze(
+        self,
+        apk_path: Path,
+        on_uploaded: Callable[[str], None] | None = None,
+    ) -> tuple[str, dict[str, Any]]:
         if not self.api_key:
             raise MobSFError("MOBSF_API_KEY belum dikonfigurasi di backend/.env")
 
@@ -32,6 +37,9 @@ class MobSFClient:
             file_hash = upload_data.get("hash")
             if not file_hash:
                 raise MobSFError("MobSF tidak mengembalikan hash APK")
+
+            if on_uploaded is not None:
+                on_uploaded(file_hash)
 
             scan = await client.post(
                 f"{self.base_url}/api/v1/scan",
@@ -54,6 +62,34 @@ class MobSFClient:
             if not isinstance(report_data, dict):
                 raise MobSFError("Format laporan MobSF tidak sesuai")
             return file_hash, report_data
+
+    async def delete_scan(self, file_hash: str) -> None:
+        if not self.api_key:
+            raise MobSFError("MOBSF_API_KEY belum dikonfigurasi di backend/.env")
+        if not file_hash:
+            raise MobSFError("Hash scan MobSF tidak tersedia")
+
+        headers = {"Authorization": self.api_key}
+        timeout = httpx.Timeout(60, connect=20)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.post(
+                f"{self.base_url}/api/v1/delete_scan",
+                headers=headers,
+                data={"hash": file_hash},
+            )
+        self._raise_for_status(response, "MobSF delete scan")
+
+        try:
+            result = response.json()
+        except json.JSONDecodeError as error:
+            raise MobSFError("Respons penghapusan MobSF bukan JSON valid") from error
+
+        deleted = result.get("deleted") if isinstance(result, dict) else None
+        if deleted == "yes":
+            return
+        if isinstance(deleted, str) and "not found" in deleted.lower():
+            return
+        raise MobSFError(f"MobSF tidak mengonfirmasi penghapusan scan: {deleted!r}")
 
     @staticmethod
     def _raise_for_status(response: httpx.Response, operation: str) -> None:

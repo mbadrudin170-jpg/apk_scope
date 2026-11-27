@@ -1,6 +1,6 @@
 import { requireNativeModule } from "expo-modules-core";
 
-type InstalledApp = {
+export type InstalledApp = {
   packageName: string;
   appName: string;
   versionName: string | null;
@@ -9,10 +9,16 @@ type InstalledApp = {
   apkPath: string;
 };
 
-const InstalledApps = requireNativeModule("InstalledApps");
+type InstalledAppsNativeModule = {
+  getInstalledApps(includeSystem: boolean): Promise<InstalledApp[]>;
+};
 
-export function getInstalledApps(includeSystem = false): InstalledApp[] {
+const InstalledApps =
+  requireNativeModule<InstalledAppsNativeModule>("InstalledApps");
+
+export function getInstalledApps(
+  includeSystem = false,
+): Promise<InstalledApp[]> {
   return InstalledApps.getInstalledApps(includeSystem);
 }
 
-export type { InstalledApp };

@@ -41,6 +41,8 @@ backend/.env
 backend/data/
 data/
 
+# generated APK artifacts
+apk/*.apk
 
 # typescript
 *.tsbuildinfo
@@ -50,4 +52,3 @@ example
 # generated native folders
 /ios
 /android
-
