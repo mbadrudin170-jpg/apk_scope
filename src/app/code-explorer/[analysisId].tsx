@@ -39,6 +39,7 @@ export default function CodeExplorerScreen() {
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [loadingContent, setLoadingContent] = useState(false);
   const [error, setError] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!apiUrl || !analysisId) {
@@ -72,7 +73,7 @@ export default function CodeExplorerScreen() {
       active = false;
       if (timer) clearTimeout(timer);
     };
-  }, [apiUrl, analysisId, token]);
+  }, [apiUrl, analysisId, token, retryCount]);
 
   useEffect(() => {
     if (!apiUrl || !analysisId || !status || !["completed", "partial"].includes(status.status)) {
@@ -226,6 +227,18 @@ export default function CodeExplorerScreen() {
         </>
       ) : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {status?.status === "failed" ? (
+        <Pressable
+          onPress={() => {
+            setError("");
+            setStatus(null);
+            setRetryCount((value) => value + 1);
+          }}
+          style={styles.retryButton}
+        >
+          <Text style={styles.retryButtonText}>Coba dekompilasi lagi</Text>
+        </Pressable>
+      ) : null}
       <Text style={styles.disclaimer}>Kode ini merupakan hasil dekompilasi, bukan source code asli. Nama dan struktur dapat berubah jika APK menggunakan obfuscation.</Text>
     </ScrollView>
   );
@@ -260,5 +273,7 @@ const styles = StyleSheet.create({
   codeScroll: { maxHeight: 520, backgroundColor: "#0B1020", borderRadius: 8, padding: 10 },
   code: { color: "#C9D4EA", fontSize: 11, lineHeight: 17, fontFamily: "monospace" },
   error: { color: "#FF9292", fontSize: 12 },
+  retryButton: { backgroundColor: "#315AC0", borderRadius: 9, padding: 12, alignItems: "center" },
+  retryButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
   disclaimer: { color: "#8995AC", fontSize: 10, lineHeight: 16, marginTop: 8 },
 });
