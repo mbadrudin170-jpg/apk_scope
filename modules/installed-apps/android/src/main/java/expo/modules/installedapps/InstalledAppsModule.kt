@@ -7,10 +7,12 @@ import android.os.Build
 import android.os.Build.VERSION_CODES
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
-import java.io.BufferedReader
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStreamReader
+import java.nio.ByteBuffer
+import java.nio.charset.CharacterCodingException
+import java.nio.charset.CodingErrorAction
 import java.util.zip.ZipFile
 
 private data class ResolvedApkPath(
@@ -258,26 +260,114 @@ class InstalledAppsModule : Module() {
     return files
   }
 
-  private fun readApkFileContent(apkPaths: List<String>, fileName: String): String? {
+  private fun readApkFileContent(
+    apkPaths: List<String>,
+    fileName: String,
+  ): Map<String, Any?>? {
     val maxBytes = 200_000
-    apkPaths.forEach { apkPath ->
+    if (
+      fileName.isBlank() ||
+      fileName.startsWith("/") ||
+      fileName.contains('\\') ||
+      fileName.split('/').any { it == ".." || it.isBlank() }
+    ) {
+      return fileContentResult(error = "Lokasi file tidak valid.")
+    }
+
+    val extension = fileName.substringAfterLast('.', "").lowercase()
+    val textExtensions = setOf(
+      "txt", "xml", "json", "html", "htm", "css", "js", "mjs", "cjs",
+      "ts", "tsx", "jsx", "java", "kt", "kts", "smali", "properties",
+      "yml", "yaml", "toml", "cfg", "ini", "md", "gradle", "pro",
+      "sh", "bat", "csv", "sql", "svg", "plist",
+    )
+    if (extension !in textExtensions) {
+      return fileContentResult(
+        error = "File ini bukan format teks yang didukung. DEX, gambar, dan library native tidak dapat ditampilkan sebagai teks."
+      )
+    }
+
+    var entryFound = false
+    for (apkPath in apkPaths) {
       try {
         ZipFile(apkPath).use { zip ->
           val entry = zip.getEntry(fileName) ?: return@use
-          if (entry.isDirectory) return@use
-          if (entry.size > maxBytes) {
-            return "File terlalu besar untuk ditampilkan (${entry.size} bytes)."
+          entryFound = true
+          if (entry.isDirectory) {
+            return fileContentResult(error = "Lokasi tersebut adalah direktori.")
           }
+          if (entry.size > maxBytes) {
+            return fileContentResult(
+              error = "File terlalu besar untuk ditampilkan (maksimal 200 KB).",
+              size = entry.size,
+            )
+          }
+
+          val output = ByteArrayOutputStream()
           zip.getInputStream(entry).use { input ->
-            BufferedReader(InputStreamReader(input, Charsets.UTF_8)).use { reader ->
-              return reader.readText()
+            val buffer = ByteArray(8_192)
+            var totalBytes = 0
+            while (true) {
+              val count = input.read(buffer)
+              if (count < 0) break
+              if (totalBytes + count > maxBytes) {
+                return fileContentResult(
+                  error = "Ukuran aktual file melebihi batas 200 KB.",
+                  size = (totalBytes + count).toLong(),
+                )
+              }
+              output.write(buffer, 0, count)
+              totalBytes += count
             }
           }
+
+          val content = try {
+            Charsets.UTF_8.newDecoder()
+              .onMalformedInput(CodingErrorAction.REPORT)
+              .onUnmappableCharacter(CodingErrorAction.REPORT)
+              .decode(ByteBuffer.wrap(output.toByteArray()))
+              .toString()
+          } catch (error: CharacterCodingException) {
+            return fileContentResult(
+              error = "Isi file bukan teks UTF-8 yang valid.",
+              size = output.size().toLong(),
+            )
+          }
+
+          if (content.contains('\\u0000')) {
+            return fileContentResult(
+              error = "File terdeteksi sebagai data binary, bukan teks biasa.",
+              size = output.size().toLong(),
+            )
+          }
+
+          return fileContentResult(
+            content = content,
+            size = output.size().toLong(),
+          )
         }
       } catch (error: Exception) {
-        // Try next APK part
+        if (entryFound) {
+          return fileContentResult(error = "Gagal membaca konten file APK.")
+        }
+        // Continue searching split APK parts.
       }
     }
-    return null
+
+    return if (entryFound) {
+      fileContentResult(error = "Konten file tidak dapat dibaca.")
+    } else {
+      null
+    }
   }
+
+  private fun fileContentResult(
+    content: String? = null,
+    error: String? = null,
+    size: Long = 0L,
+  ): Map<String, Any?> = mapOf(
+    "content" to content,
+    "error" to error,
+    "size" to size,
+  )
 }

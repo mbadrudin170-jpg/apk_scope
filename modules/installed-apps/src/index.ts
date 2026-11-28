@@ -9,6 +9,12 @@ export type InstalledApp = {
   apkPath: string;
 };
 
+export type ApkFileContent = {
+  content: string | null;
+  error: string | null;
+  size: number;
+};
+
 export type ApkInfo = {
   packageName: string;
   appName: string;
@@ -28,7 +34,7 @@ type InstalledAppsNativeModule = {
   getAppLibraries(packageName: string): Promise<string[]>;
   getApkInfo(apkUri: string): Promise<ApkInfo | null>;
   getInstalledApkInfo(packageName: string): Promise<ApkInfo | null>;
-  getInstalledApkFileContent(packageName: string, fileName: string): Promise<string | null>;
+  getInstalledApkFileContent(packageName: string, fileName: string): Promise<ApkFileContent | null>;
 };
 
 const InstalledApps =
@@ -72,7 +78,7 @@ export function getInstalledApkInfo(
 export function getInstalledApkFileContent(
   packageName: string,
   fileName: string,
-): Promise<string | null> {
+): Promise<ApkFileContent | null> {
   if (typeof InstalledApps.getInstalledApkFileContent !== "function") {
     return Promise.reject(
       new Error("Fitur ini memerlukan build development terbaru."),

@@ -64,22 +64,17 @@ export default function DetailApk() {
 
   const apkInfo =
     result !== null && result.pkg === packageName ? result.info : null;
-  console.log(apkInfo);
-
   const libraries = apkInfo?.nativeLibs ?? [];
   const allFiles = (apkInfo?.allFiles ?? []).filter(
     (file) => !file.startsWith("res/"),
   );
   const loading =
     !!packageName && (result === null || result.pkg !== packageName);
-  console.log(loading);
-
   const error = !packageName
     ? "Package tidak tersedia."
     : result !== null && result.pkg === packageName
       ? result.error
       : "";
-  console.log(error);
 
   const handleCopy = async () => {
     if (!apkInfo) return;

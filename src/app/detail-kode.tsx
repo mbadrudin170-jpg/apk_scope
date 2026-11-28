@@ -13,34 +13,54 @@ import { getInstalledApkFileContent } from "../../modules/installed-apps/src";
 
 export default function DetailKode() {
   const { file, packageName } = useLocalSearchParams<{
-    file?: string;
-    packageName?: string;
+    file?: string | string[];
+    packageName?: string | string[];
   }>();
   const fileName = Array.isArray(file) ? file[0] : file;
   const pkg = Array.isArray(packageName) ? packageName[0] : packageName;
 
   const [content, setContent] = useState<string | null>(null);
-  const [loading, setLoading] = useState(!!pkg && !!fileName);
-  const [error, setError] = useState(
-    pkg && fileName ? "" : "File atau package tidak tersedia.",
-  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!pkg || !fileName) return;
     let active = true;
+    setContent(null);
+    setError("");
+
+    if (!pkg || !fileName) {
+      setLoading(false);
+      setError("File atau package tidak tersedia.");
+      return () => {
+        active = false;
+      };
+    }
+
+    setLoading(true);
     getInstalledApkFileContent(pkg, fileName)
       .then((result) => {
         if (!active) return;
-        if (result === null) setError("Konten file tidak dapat dibaca.");
-        else setContent(result);
+        if (!result) {
+          setError("File tidak ditemukan di APK terpasang.");
+        } else if (result.error) {
+          setError(result.error);
+        } else if (result.content === null) {
+          setError("Konten file tidak tersedia.");
+        } else {
+          setContent(result.content);
+        }
       })
       .catch((cause: unknown) => {
-        if (active)
-          setError(cause instanceof Error ? cause.message : "Gagal membaca file");
+        if (active) {
+          setError(
+            cause instanceof Error ? cause.message : "Gagal membaca file.",
+          );
+        }
       })
       .finally(() => {
         if (active) setLoading(false);
       });
+
     return () => {
       active = false;
     };
@@ -49,7 +69,7 @@ export default function DetailKode() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.title}>Detail Kode</Text>
+        <Text style={styles.title}>Detail File</Text>
         <Text style={styles.subtitle}>{fileName ?? "File tidak dipilih"}</Text>
         {loading ? (
           <ActivityIndicator color="#8EAEFF" style={styles.loader} />
@@ -57,7 +77,9 @@ export default function DetailKode() {
           <Text style={styles.error}>{error}</Text>
         ) : (
           <ScrollView style={styles.codeScroll}>
-            <Text style={styles.code}>{content}</Text>
+            <Text selectable style={styles.code}>
+              {content}
+            </Text>
           </ScrollView>
         )}
       </View>

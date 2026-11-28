@@ -45,16 +45,27 @@ export default function AnalysisDetailScreen() {
   const [selectedPackage, setSelectedPackage] = useState("");
   const [selectedClass, setSelectedClass] = useState("");
   const [methods, setMethods] = useState<DexMethod[]>([]);
-  const [loading, setLoading] = useState(!!API_URL);
-  const [error, setError] = useState(
+  const [reportLoading, setReportLoading] = useState(!!API_URL);
+  const [tabLoading, setTabLoading] = useState(false);
+  const [reportError, setReportError] = useState(
     API_URL
       ? ""
       : "Alamat backend belum tersedia. Kembali ke halaman utama dan isi konfigurasi backend.",
   );
+  const [tabError, setTabError] = useState("");
+  const loading = reportLoading || tabLoading;
+  const error = reportError || tabError;
 
   useEffect(() => {
-    if (!API_URL) return;
+    if (!API_URL) {
+      setReportLoading(false);
+      return;
+    }
     let active = true;
+    setReportLoading(true);
+    setReportError("");
+    setAnalysis(null);
+    setSummary(null);
     Promise.all([
       fetchAnalysis(API_URL, analysisId, API_TOKEN),
       fetchDexSummary(API_URL, analysisId, API_TOKEN),
@@ -63,16 +74,16 @@ export default function AnalysisDetailScreen() {
         if (!active) return;
         setAnalysis(detail);
         setSummary(dex);
-        setError("");
+        setReportError("");
       })
       .catch((cause: unknown) => {
         if (active)
-          setError(
+          setReportError(
             cause instanceof Error ? cause.message : "Gagal mengambil laporan",
           );
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) setReportLoading(false);
       });
     return () => {
       active = false;
@@ -80,15 +91,20 @@ export default function AnalysisDetailScreen() {
   }, [analysisId, API_URL, API_TOKEN]);
 
   useEffect(() => {
-    if (!API_URL) return;
+    if (!API_URL) {
+      setTabLoading(false);
+      return;
+    }
     let active = true;
+    if (tab === "overview") {
+      setTabLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+    setTabLoading(true);
+    setTabError("");
     const load = async () => {
-      if (active) setLoading(true);
-      if (active) setError("");
-      if (tab === "overview") {
-        if (active) setLoading(false);
-        return;
-      }
       if (tab === "packages") {
         const page = await fetchDexPackages(
           API_URL,
@@ -143,12 +159,12 @@ export default function AnalysisDetailScreen() {
     load()
       .catch((cause: unknown) => {
         if (active)
-          setError(
+          setTabError(
             cause instanceof Error ? cause.message : "Gagal memuat data",
           );
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) setTabLoading(false);
       });
     return () => {
       active = false;
@@ -189,7 +205,7 @@ export default function AnalysisDetailScreen() {
       );
       setMethods(result.items);
     } catch (cause) {
-      setError(
+      setTabError(
         cause instanceof Error ? cause.message : "Gagal mengambil method",
       );
     }

@@ -213,7 +213,7 @@ class AnalysisDatabase:
         if package_name:
             where += " AND package_name = ?"
             parameters.append(package_name)
-        elif query:
+        if query:
             where += " AND (class_name LIKE ? OR package_name LIKE ?)"
             parameters.extend((f"%{query}%", f"%{query}%"))
         with self.connect() as connection:
