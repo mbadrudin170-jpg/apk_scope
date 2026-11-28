@@ -288,6 +288,7 @@ export default function DetailApk() {
               ) : (
                 <FlatList
                   data={allFiles}
+                  style={{ backgroundColor: "transparent" }}
                   keyExtractor={(item, index) => `${item}-${index}`}
                   renderItem={({ item }) => (
                     <Pressable

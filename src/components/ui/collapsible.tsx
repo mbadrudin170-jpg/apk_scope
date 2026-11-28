@@ -42,7 +42,12 @@ export function Collapsible({
           entering={FadeIn.duration(180)}
           layout={LinearTransition.springify().damping(18)}
         >
-          <ThemedView type="backgroundElement" style={styles.content}>
+          <ThemedView
+            style={[
+              styles.content,
+              { backgroundColor: "transparent", borderWidth: 0 },
+            ]}
+          >
             {children}
           </ThemedView>
         </Animated.View>
@@ -84,5 +89,6 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.three,
     marginBottom: Spacing.three,
     borderRadius: 12,
+    padding: Spacing.half,
   },
 });
