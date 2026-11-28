@@ -21,7 +21,10 @@ import {
 import {
   detectFrameworks,
   detectJsLibrariesFromScan,
+  detectFlutterPackagesFromScan,
   getAllJsNeedles,
+  getAllFlutterNeedles,
+  findFlutterLibraryFile,
 } from "@/services/detection/localDetector";
 
 export default function ScanLokal() {
@@ -66,9 +69,24 @@ export default function ScanLokal() {
         }
       }
 
+      const flutterLib = findFlutterLibraryFile(info.allFiles);
+      let flutterScan: Record<string, number> | null = null;
+      if (flutterLib) {
+        try {
+          flutterScan = await scanApkFile(
+            asset.uri,
+            flutterLib,
+            getAllFlutterNeedles(),
+          );
+        } catch {
+          flutterScan = null;
+        }
+      }
+
       const detections = [
         ...detectFrameworks(info),
         ...detectJsLibrariesFromScan(jsScan),
+        ...detectFlutterPackagesFromScan(flutterScan),
       ];
 
       const detectionText =

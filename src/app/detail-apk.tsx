@@ -23,7 +23,10 @@ import {
 import {
   detectFrameworks,
   detectJsLibrariesFromScan,
+  detectFlutterPackagesFromScan,
   getAllJsNeedles,
+  getAllFlutterNeedles,
+  findFlutterLibraryFile,
   type Detection,
 } from "@/services/detection/localDetector";
 
@@ -112,7 +115,25 @@ export default function DetailApk() {
       }
 
       const jsLibraries = detectJsLibrariesFromScan(scan);
-      if (mounted) setDetections([...frameworks, ...jsLibraries]);
+
+      const flutterLib = findFlutterLibraryFile(apkInfo.allFiles);
+      let flutterScan: Record<string, number> | null = null;
+      if (flutterLib) {
+        try {
+          flutterScan = await scanInstalledApkFile(
+            packageName,
+            flutterLib,
+            getAllFlutterNeedles(),
+          );
+        } catch {
+          flutterScan = null;
+        }
+      }
+
+      const flutterPackages = detectFlutterPackagesFromScan(flutterScan);
+      if (mounted) {
+        setDetections([...frameworks, ...jsLibraries, ...flutterPackages]);
+      }
     })();
 
     return () => {
