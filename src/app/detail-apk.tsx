@@ -311,6 +311,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "#26334D",
   },
+  buttonPressed: {
+    opacity: 0.7,
+  },
   item: {
     color: "#FFFFFF",
     fontSize: 13,
