@@ -67,6 +67,19 @@ export default function AppTabs() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="uji-coba"
+        options={{
+          title: "Uji Coba",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "flask" : "flask-outline"}
+              size={size}
+              color={color as string}
+            />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
