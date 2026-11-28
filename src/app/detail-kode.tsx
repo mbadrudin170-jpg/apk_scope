@@ -22,21 +22,25 @@ export default function DetailKode() {
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [requestKey, setRequestKey] = useState<string | null | undefined>(undefined);
+
+  const currentKey = pkg && fileName ? `${pkg}\u0000${fileName}` : null;
+
+  if (requestKey !== currentKey) {
+    setRequestKey(currentKey);
+    setContent(null);
+    setError(
+      currentKey ? "" : "File atau package tidak tersedia.",
+    );
+    setLoading(!!currentKey);
+  }
 
   useEffect(() => {
-    let active = true;
-    setContent(null);
-    setError("");
-
     if (!pkg || !fileName) {
-      setLoading(false);
-      setError("File atau package tidak tersedia.");
-      return () => {
-        active = false;
-      };
+      return;
     }
 
-    setLoading(true);
+    let active = true;
     getInstalledApkFileContent(pkg, fileName)
       .then((result) => {
         if (!active) return;
