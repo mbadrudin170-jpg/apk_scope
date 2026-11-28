@@ -26,6 +26,17 @@ export default function DetailKode() {
   );
 
   const currentKey = pkg && fileName ? `${pkg}\u0000${fileName}` : null;
+  console.log({
+    file,
+    packageName,
+    fileName,
+    pkg,
+    content,
+    loading,
+    requestKey,
+    currentKey,
+    error,
+  });
 
   if (requestKey !== currentKey) {
     setRequestKey(currentKey);
