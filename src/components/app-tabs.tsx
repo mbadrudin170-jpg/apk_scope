@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useColorScheme } from "react-native";
+import { Pressable, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/theme";
@@ -24,17 +24,15 @@ export default function AppTabs() {
           fontWeight: "600",
           marginTop: 2,
         },
-        tabBarItemStyle: {
-          borderRadius: 12,
-          marginHorizontal: 4,
-          marginVertical: 4,
-        },
+        tabBarButton: (props: any) => (
+          <Pressable {...props} android_ripple={{ color: "transparent" }} />
+        ),
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopWidth: 0,
-          height: 60 + insets.bottom,
-          paddingBottom: 6 + insets.bottom,
-          paddingTop: 6,
+          height: 56 + insets.bottom,
+          paddingBottom: 4 + insets.bottom,
+          paddingTop: 4,
           elevation: 12,
           shadowColor: "#000",
           shadowOpacity: isDark ? 0.4 : 0.12,
