@@ -29,12 +29,24 @@ export type ApkInfo = {
   splitApkCount: number;
 };
 
+export type StringScanResult = Record<string, number>;
+
 type InstalledAppsNativeModule = {
   getInstalledApps(includeSystem: boolean): Promise<InstalledApp[]>;
   getAppLibraries(packageName: string): Promise<string[]>;
   getApkInfo(apkUri: string): Promise<ApkInfo | null>;
   getInstalledApkInfo(packageName: string): Promise<ApkInfo | null>;
   getInstalledApkFileContent(packageName: string, fileName: string): Promise<ApkFileContent | null>;
+  scanInstalledApkFile(
+    packageName: string,
+    fileName: string,
+    needles: string[],
+  ): Promise<StringScanResult | null>;
+  scanApkFile(
+    apkUri: string,
+    fileName: string,
+    needles: string[],
+  ): Promise<StringScanResult | null>;
 };
 
 const InstalledApps =
@@ -85,4 +97,30 @@ export function getInstalledApkFileContent(
     );
   }
   return InstalledApps.getInstalledApkFileContent(packageName, fileName);
+}
+
+export function scanInstalledApkFile(
+  packageName: string,
+  fileName: string,
+  needles: string[],
+): Promise<StringScanResult | null> {
+  if (typeof InstalledApps.scanInstalledApkFile !== "function") {
+    return Promise.reject(
+      new Error("Fitur ini memerlukan build development terbaru."),
+    );
+  }
+  return InstalledApps.scanInstalledApkFile(packageName, fileName, needles);
+}
+
+export function scanApkFile(
+  apkUri: string,
+  fileName: string,
+  needles: string[],
+): Promise<StringScanResult | null> {
+  if (typeof InstalledApps.scanApkFile !== "function") {
+    return Promise.reject(
+      new Error("Fitur ini memerlukan build development terbaru."),
+    );
+  }
+  return InstalledApps.scanApkFile(apkUri, fileName, needles);
 }

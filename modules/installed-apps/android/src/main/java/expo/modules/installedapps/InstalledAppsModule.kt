@@ -103,7 +103,7 @@ class InstalledAppsModule : Module() {
       readApkInfo(context, apkPaths)
     }
 
-    AsyncFunction("getInstalledApkFileContent") { packageName: String, fileName: String ->
+    AsyncFunction("scanInstalledApkFile") { packageName: String, fileName: String, needles: List<String> ->
       val context = appContext.reactContext
         ?: return@AsyncFunction null
 
@@ -116,8 +116,76 @@ class InstalledAppsModule : Module() {
       val apkPaths = (listOf(appInfo.sourceDir) + appInfo.splitSourceDirs.orEmpty().toList())
         .filter { File(it).isFile }
 
-      readApkFileContent(apkPaths, fileName)
+      scanApkPaths(apkPaths, fileName, needles)
     }
+
+    AsyncFunction("scanApkFile") { apkUri: String, fileName: String, needles: List<String> ->
+      val context = appContext.reactContext
+        ?: return@AsyncFunction null
+
+      val resolved = resolveApkPath(context, apkUri)
+        ?: return@AsyncFunction null
+
+      try {
+        scanApkPaths(listOf(resolved.path), fileName, needles)
+      } finally {
+        resolved.temporaryFile?.delete()
+      }
+    }
+  }
+
+  private fun scanApkPaths(
+    apkPaths: List<String>,
+    fileName: String,
+    needles: List<String>,
+  ): Map<String, Int> {
+    val lowerNeedles = needles.map { it.lowercase() }
+    val counts = mutableMapOf<String, Int>().apply {
+      lowerNeedles.forEach { this[it] = 0 }
+    }
+
+    if (
+      fileName.isBlank() ||
+      fileName.startsWith("/") ||
+      fileName.contains('\\') ||
+      fileName.split('/').any { it == ".." || it.isBlank() }
+    ) {
+      return counts
+    }
+
+    apkPaths.forEach { apkPath ->
+      try {
+        ZipFile(apkPath).use { zip ->
+          val entry = zip.getEntry(fileName) ?: return@use
+          if (entry.isDirectory) return@use
+          if (entry.size > 10_000_000L) return@use
+
+          val bytes = zip.getInputStream(entry).use { it.readBytes() }
+          val text = String(bytes, Charsets.ISO_8859_1).lowercase()
+
+          lowerNeedles.forEach { needle ->
+            counts[needle] = (counts[needle] ?: 0) + countOccurrences(text, needle)
+          }
+        }
+      } catch (_: Exception) {
+        // Skip unreadable APK parts.
+      }
+    }
+
+    return counts
+  }
+
+  private fun countOccurrences(text: String, needle: String): Int {
+    if (needle.isEmpty()) return 0
+    var count = 0
+    var idx = 0
+    while (true) {
+      idx = text.indexOf(needle, idx)
+      if (idx < 0) break
+      count++
+      idx += needle.length
+    }
+    return count
   }
 
   private fun resolveApkPath(

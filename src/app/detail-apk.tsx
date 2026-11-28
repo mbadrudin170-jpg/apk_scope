@@ -17,8 +17,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   getInstalledApkInfo,
+  scanInstalledApkFile,
   type ApkInfo,
 } from "../../modules/installed-apps/src";
+import {
+  detectFrameworks,
+  detectJsLibrariesFromScan,
+  getAllJsNeedles,
+  type Detection,
+} from "@/services/detection/localDetector";
 
 export default function DetailApk() {
   const { packageName } = useLocalSearchParams<{
@@ -29,6 +36,7 @@ export default function DetailApk() {
     info: ApkInfo | null;
     error: string;
   } | null>(null);
+  const [detections, setDetections] = useState<Detection[]>([]);
 
   useEffect(() => {
     if (!packageName) return;
@@ -77,6 +85,40 @@ export default function DetailApk() {
     : result !== null && result.pkg === packageName
       ? result.error
       : "";
+
+  useEffect(() => {
+    if (!apkInfo || !packageName) return;
+
+    let mounted = true;
+
+    (async () => {
+      setDetections([]);
+      const frameworks = detectFrameworks(apkInfo);
+      const hasBundle = apkInfo.allFiles.includes(
+        "assets/index.android.bundle",
+      );
+
+      let scan: Record<string, number> | null = null;
+      if (hasBundle) {
+        try {
+          scan = await scanInstalledApkFile(
+            packageName,
+            "assets/index.android.bundle",
+            getAllJsNeedles(),
+          );
+        } catch {
+          scan = null;
+        }
+      }
+
+      const jsLibraries = detectJsLibrariesFromScan(scan);
+      if (mounted) setDetections([...frameworks, ...jsLibraries]);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [apkInfo, packageName]);
 
   const buildReport = (info: ApkInfo): string => {
     const libs = info.nativeLibs ?? [];
@@ -244,6 +286,27 @@ export default function DetailApk() {
                 scrollEnabled={false}
               />
             )}
+            <Text style={styles.sectionTitle}>Framework & Library (lokal)</Text>
+            {detections.length === 0 ? (
+              <Text style={styles.empty}>
+                Tidak ada deteksi kuat dari APK ini.
+              </Text>
+            ) : (
+              detections.map((detection, index) => (
+                <View key={`${detection.name}-${index}`} style={styles.row}>
+                  <Text style={styles.item}>
+                    {detection.name} — {detection.confidence}
+                  </Text>
+                  <Text style={styles.sub}>
+                    {detection.evidence.join(", ")}
+                  </Text>
+                  <Text style={styles.sub}>
+                    Versi: {detection.version ?? "tidak diketahui"}
+                  </Text>
+                </View>
+              ))
+            )}
+
             <Text style={styles.sectionTitle}>Permissions</Text>
             {apkInfo.permissions.length === 0 ? (
               <Text style={styles.empty}>

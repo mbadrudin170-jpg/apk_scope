@@ -15,8 +15,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   getApkInfo,
   getInstalledApps,
+  scanApkFile,
   type InstalledApp,
 } from "../../../modules/installed-apps/src";
+import {
+  detectFrameworks,
+  detectJsLibrariesFromScan,
+  getAllJsNeedles,
+} from "@/services/detection/localDetector";
 
 export default function ScanLokal() {
   const [apps, setApps] = useState<InstalledApp[]>([]);
@@ -46,6 +52,36 @@ export default function ScanLokal() {
         return;
       }
 
+      const hasBundle = info.allFiles.includes("assets/index.android.bundle");
+      let jsScan: Record<string, number> | null = null;
+      if (hasBundle) {
+        try {
+          jsScan = await scanApkFile(
+            asset.uri,
+            "assets/index.android.bundle",
+            getAllJsNeedles(),
+          );
+        } catch {
+          jsScan = null;
+        }
+      }
+
+      const detections = [
+        ...detectFrameworks(info),
+        ...detectJsLibrariesFromScan(jsScan),
+      ];
+
+      const detectionText =
+        detections.length === 0
+          ? "Deteksi: tidak ada yang kuat."
+          : "Deteksi:\n" +
+            detections
+              .map(
+                (d) =>
+                  `- ${d.name} (${d.confidence}): ${d.evidence.join(", ")}`,
+              )
+              .join("\n");
+
       const resultText = [
         `Nama: ${info.appName}`,
         `Package: ${info.packageName}`,
@@ -55,6 +91,8 @@ export default function ScanLokal() {
         `Native libs: ${info.nativeLibs.length}`,
         `Semua file: ${info.allFiles?.length ?? 0}`,
         `File APK: ${info.apkFiles.length}`,
+        "",
+        detectionText,
       ].join("\n");
 
       Alert.alert("Hasil analisis APK", resultText);
