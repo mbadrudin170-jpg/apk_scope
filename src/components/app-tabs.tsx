@@ -1,7 +1,8 @@
 import { Tabs } from "expo-router";
-import { Image, useColorScheme } from "react-native";
+import { useColorScheme } from "react-native";
 
 import { Colors } from "@/constants/theme";
+import { CachedImage } from "@/components/cached-image";
 
 export default function AppTabs() {
   const scheme = useColorScheme();
@@ -21,7 +22,7 @@ export default function AppTabs() {
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => (
-            <Image
+            <CachedImage
               source={require("@/assets/images/tabIcons/home.png")}
               style={{ width: size, height: size, tintColor: color }}
             />
@@ -33,7 +34,7 @@ export default function AppTabs() {
         options={{
           title: "Scan Lokal",
           tabBarIcon: ({ color, size }) => (
-            <Image
+            <CachedImage
               source={require("@/assets/images/tabIcons/explore.png")}
               style={{ width: size, height: size, tintColor: color }}
             />
