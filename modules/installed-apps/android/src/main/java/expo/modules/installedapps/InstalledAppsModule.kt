@@ -274,19 +274,6 @@ class InstalledAppsModule : Module() {
       return fileContentResult(error = "Lokasi file tidak valid.")
     }
 
-    val extension = fileName.substringAfterLast('.', "").lowercase()
-    val textExtensions = setOf(
-      "txt", "xml", "json", "html", "htm", "css", "js", "mjs", "cjs",
-      "ts", "tsx", "jsx", "java", "kt", "kts", "smali", "properties",
-      "yml", "yaml", "toml", "cfg", "ini", "md", "gradle", "pro",
-      "sh", "bat", "csv", "sql", "svg", "plist",
-    )
-    if (extension !in textExtensions) {
-      return fileContentResult(
-        error = "File ini bukan format teks yang didukung. DEX, gambar, dan library native tidak dapat ditampilkan sebagai teks."
-      )
-    }
-
     var entryFound = false
     for (apkPath in apkPaths) {
       try {

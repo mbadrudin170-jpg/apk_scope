@@ -18,7 +18,6 @@ export default function DetailKode() {
   }>();
   const fileName = Array.isArray(file) ? file[0] : file;
   const pkg = Array.isArray(packageName) ? packageName[0] : packageName;
-
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
