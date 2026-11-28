@@ -84,6 +84,5 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.three,
     marginBottom: Spacing.three,
     borderRadius: 12,
-    padding: Spacing.three,
   },
 });
