@@ -92,11 +92,18 @@ export function getInstalledApkFileContent(
   fileName: string,
 ): Promise<ApkFileContent | null> {
   if (typeof InstalledApps.getInstalledApkFileContent !== "function") {
+    console.log("[InstalledApps] getInstalledApkFileContent native function missing");
     return Promise.reject(
       new Error("Fitur ini memerlukan build development terbaru."),
     );
   }
-  return InstalledApps.getInstalledApkFileContent(packageName, fileName);
+  console.log("[InstalledApps] getInstalledApkFileContent", packageName, fileName);
+  return InstalledApps.getInstalledApkFileContent(packageName, fileName).then(
+    (result) => {
+      console.log("[InstalledApps] getInstalledApkFileContent result", result);
+      return result;
+    },
+  );
 }
 
 export function scanInstalledApkFile(
@@ -105,11 +112,18 @@ export function scanInstalledApkFile(
   needles: string[],
 ): Promise<StringScanResult | null> {
   if (typeof InstalledApps.scanInstalledApkFile !== "function") {
+    console.log("[InstalledApps] scanInstalledApkFile native function missing");
     return Promise.reject(
       new Error("Fitur ini memerlukan build development terbaru."),
     );
   }
-  return InstalledApps.scanInstalledApkFile(packageName, fileName, needles);
+  console.log("[InstalledApps] scanInstalledApkFile", packageName, fileName, needles);
+  return InstalledApps.scanInstalledApkFile(packageName, fileName, needles).then(
+    (result) => {
+      console.log("[InstalledApps] scanInstalledApkFile result", result);
+      return result;
+    },
+  );
 }
 
 export function scanApkFile(
@@ -118,9 +132,14 @@ export function scanApkFile(
   needles: string[],
 ): Promise<StringScanResult | null> {
   if (typeof InstalledApps.scanApkFile !== "function") {
+    console.log("[InstalledApps] scanApkFile native function missing");
     return Promise.reject(
       new Error("Fitur ini memerlukan build development terbaru."),
     );
   }
-  return InstalledApps.scanApkFile(apkUri, fileName, needles);
+  console.log("[InstalledApps] scanApkFile", apkUri, fileName, needles);
+  return InstalledApps.scanApkFile(apkUri, fileName, needles).then((result) => {
+    console.log("[InstalledApps] scanApkFile result", result);
+    return result;
+  });
 }
