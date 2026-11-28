@@ -28,6 +28,7 @@ type InstalledAppsNativeModule = {
   getAppLibraries(packageName: string): Promise<string[]>;
   getApkInfo(apkUri: string): Promise<ApkInfo | null>;
   getInstalledApkInfo(packageName: string): Promise<ApkInfo | null>;
+  getInstalledApkFileContent(packageName: string, fileName: string): Promise<string | null>;
 };
 
 const InstalledApps =
@@ -66,4 +67,16 @@ export function getInstalledApkInfo(
     );
   }
   return InstalledApps.getInstalledApkInfo(packageName);
+}
+
+export function getInstalledApkFileContent(
+  packageName: string,
+  fileName: string,
+): Promise<string | null> {
+  if (typeof InstalledApps.getInstalledApkFileContent !== "function") {
+    return Promise.reject(
+      new Error("Fitur ini memerlukan build development terbaru."),
+    );
+  }
+  return InstalledApps.getInstalledApkFileContent(packageName, fileName);
 }

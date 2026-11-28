@@ -7,8 +7,10 @@ import android.os.Build
 import android.os.Build.VERSION_CODES
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStreamReader
 import java.util.zip.ZipFile
 
 private data class ResolvedApkPath(
@@ -97,6 +99,22 @@ class InstalledAppsModule : Module() {
         .filter { File(it).isFile }
 
       readApkInfo(context, apkPaths)
+    }
+
+    AsyncFunction("getInstalledApkFileContent") { packageName: String, fileName: String ->
+      val context = appContext.reactContext
+        ?: return@AsyncFunction null
+
+      val appInfo = try {
+        context.packageManager.getApplicationInfo(packageName, 0)
+      } catch (error: PackageManager.NameNotFoundException) {
+        null
+      } ?: return@AsyncFunction null
+
+      val apkPaths = (listOf(appInfo.sourceDir) + appInfo.splitSourceDirs.orEmpty().toList())
+        .filter { File(it).isFile }
+
+      readApkFileContent(apkPaths, fileName)
     }
   }
 
@@ -238,5 +256,28 @@ class InstalledAppsModule : Module() {
     }
 
     return files
+  }
+
+  private fun readApkFileContent(apkPaths: List<String>, fileName: String): String? {
+    val maxBytes = 200_000
+    apkPaths.forEach { apkPath ->
+      try {
+        ZipFile(apkPath).use { zip ->
+          val entry = zip.getEntry(fileName) ?: return@use
+          if (entry.isDirectory) return@use
+          if (entry.size > maxBytes) {
+            return "File terlalu besar untuk ditampilkan (${entry.size} bytes)."
+          }
+          zip.getInputStream(entry).use { input ->
+            BufferedReader(InputStreamReader(input, Charsets.UTF_8)).use { reader ->
+              return reader.readText()
+            }
+          }
+        }
+      } catch (error: Exception) {
+        // Try next APK part
+      }
+    }
+    return null
   }
 }

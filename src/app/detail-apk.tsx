@@ -184,7 +184,7 @@ export default function DetailApk() {
                     onPress={() =>
                       router.push({
                         pathname: "/detail-kode",
-                        params: { file: item },
+                        params: { file: item, packageName },
                       })
                     }
                     style={({ pressed }) => [
