@@ -1,5 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import * as Clipboard from "expo-clipboard";
+import { File, Paths } from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -76,31 +78,67 @@ export default function DetailApk() {
       ? result.error
       : "";
 
-  const handleCopy = async () => {
-    if (!apkInfo) return;
+  const buildReport = (info: ApkInfo): string => {
+    const libs = info.nativeLibs ?? [];
+    const files = (info.allFiles ?? []).filter(
+      (file) => !file.startsWith("res/"),
+    );
     const lines: string[] = [];
-    lines.push(`Package: ${apkInfo.packageName ?? packageName ?? ""}`);
-    lines.push(`Nama: ${apkInfo.appName}`);
-    lines.push(`Versi: ${apkInfo.versionName ?? "-"}`);
-    lines.push(`Version code: ${apkInfo.versionCode}`);
-    lines.push(`Minimum SDK: ${apkInfo.minSdk}`);
-    lines.push(`Target SDK: ${apkInfo.targetSdk}`);
-    lines.push(`Jumlah split APK: ${apkInfo.splitApkCount}`);
-    lines.push(`Jumlah permission: ${apkInfo.permissions.length}`);
+    lines.push(`Package: ${info.packageName ?? packageName ?? ""}`);
+    lines.push(`Nama: ${info.appName}`);
+    lines.push(`Versi: ${info.versionName ?? "-"}`);
+    lines.push(`Version code: ${info.versionCode}`);
+    lines.push(`Minimum SDK: ${info.minSdk}`);
+    lines.push(`Target SDK: ${info.targetSdk}`);
+    lines.push(`Jumlah split APK: ${info.splitApkCount}`);
+    lines.push(`Jumlah permission: ${info.permissions.length}`);
     lines.push("");
     lines.push("File APK:");
-    apkInfo.apkFiles.forEach((f) => lines.push(`- ${f}`));
+    info.apkFiles.forEach((f) => lines.push(`- ${f}`));
     lines.push("");
     lines.push("Native libraries:");
-    libraries.forEach((l) => lines.push(`- ${l}`));
+    libs.forEach((l) => lines.push(`- ${l}`));
     lines.push("");
     lines.push("Semua file di dalam APK:");
-    allFiles.forEach((f) => lines.push(`- ${f}`));
+    files.forEach((f) => lines.push(`- ${f}`));
     lines.push("");
     lines.push("Permissions:");
-    apkInfo.permissions.forEach((p) => lines.push(`- ${p}`));
-    await Clipboard.setStringAsync(lines.join("\n"));
+    info.permissions.forEach((p) => lines.push(`- ${p}`));
+    return lines.join("\n");
+  };
+
+  const handleCopy = async () => {
+    if (!apkInfo) return;
+    await Clipboard.setStringAsync(buildReport(apkInfo));
     Alert.alert("Disalin", "Semua informasi APK telah disalin.");
+  };
+
+  const handleDownload = async () => {
+    if (!apkInfo) return;
+    try {
+      const content = buildReport(apkInfo);
+      const safeName = (apkInfo.packageName ?? packageName ?? "apk").replace(
+        /[^a-zA-Z0-9._-]/g,
+        "_",
+      );
+      const file = new File(Paths.cache, `${safeName}.txt`);
+      if (file.exists) file.delete();
+      await file.write(content);
+      const available = await Sharing.isAvailableAsync();
+      if (available) {
+        await Sharing.shareAsync(file.uri, {
+          mimeType: "text/plain",
+          dialogTitle: "Unduh hasil analisis",
+        });
+      } else {
+        Alert.alert("Tersimpan", `File disimpan di ${file.uri}`);
+      }
+    } catch (cause: unknown) {
+      Alert.alert(
+        "Gagal",
+        cause instanceof Error ? cause.message : "Gagal mengunduh file.",
+      );
+    }
   };
 
   return (
@@ -111,17 +149,30 @@ export default function DetailApk() {
             <Text style={styles.title}>Detail APK</Text>
             {packageName ? <Text style={styles.sub}>{packageName}</Text> : null}
           </View>
-          <Pressable
-            onPress={handleCopy}
-            disabled={!apkInfo}
-            style={({ pressed }) => [
-              styles.copyButton,
-              !apkInfo && styles.copyButtonDisabled,
-              pressed && styles.copyButtonPressed,
-            ]}
-          >
-            <Text style={styles.copyButtonText}>Salin semua</Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={handleCopy}
+              disabled={!apkInfo}
+              style={({ pressed }) => [
+                styles.copyButton,
+                !apkInfo && styles.copyButtonDisabled,
+                pressed && styles.copyButtonPressed,
+              ]}
+            >
+              <Text style={styles.copyButtonText}>Salin semua</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleDownload}
+              disabled={!apkInfo}
+              style={({ pressed }) => [
+                styles.copyButton,
+                !apkInfo && styles.copyButtonDisabled,
+                pressed && styles.copyButtonPressed,
+              ]}
+            >
+              <Text style={styles.copyButtonText}>Unduh .txt</Text>
+            </Pressable>
+          </View>
         </View>
 
         {loading ? (
@@ -236,6 +287,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12,
     marginBottom: 12,
+  },
+  headerActions: {
+    flexDirection: "row",
+    gap: 8,
   },
   headerText: {
     flex: 1,
