@@ -158,7 +158,7 @@ export default function ScanLokal() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <View style={styles.container}>
         <Text style={styles.title}>Aplikasi terpasang</Text>
 
