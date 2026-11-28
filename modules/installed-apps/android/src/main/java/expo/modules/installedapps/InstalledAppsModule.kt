@@ -334,7 +334,7 @@ class InstalledAppsModule : Module() {
             )
           }
 
-          if (content.contains('\\u0000')) {
+          if (content.contains('\u0000')) {
             return fileContentResult(
               error = "File terdeteksi sebagai data binary, bukan teks biasa.",
               size = output.size().toLong(),

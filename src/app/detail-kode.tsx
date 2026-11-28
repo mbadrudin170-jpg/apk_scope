@@ -22,16 +22,16 @@ export default function DetailKode() {
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [requestKey, setRequestKey] = useState<string | null | undefined>(undefined);
+  const [requestKey, setRequestKey] = useState<string | null | undefined>(
+    undefined,
+  );
 
   const currentKey = pkg && fileName ? `${pkg}\u0000${fileName}` : null;
 
   if (requestKey !== currentKey) {
     setRequestKey(currentKey);
     setContent(null);
-    setError(
-      currentKey ? "" : "File atau package tidak tersedia.",
-    );
+    setError(currentKey ? "" : "File atau package tidak tersedia.");
     setLoading(!!currentKey);
   }
 

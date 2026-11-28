@@ -58,33 +58,33 @@ export default function AnalysisDetailScreen() {
 
   useEffect(() => {
     if (!API_URL) {
-      setReportLoading(false);
       return;
     }
     let active = true;
-    setReportLoading(true);
-    setReportError("");
-    setAnalysis(null);
-    setSummary(null);
-    Promise.all([
-      fetchAnalysis(API_URL, analysisId, API_TOKEN),
-      fetchDexSummary(API_URL, analysisId, API_TOKEN),
-    ])
-      .then(([detail, dex]) => {
+    const load = async () => {
+      setReportLoading(true);
+      setReportError("");
+      setAnalysis(null);
+      setSummary(null);
+      try {
+        const [detail, dex] = await Promise.all([
+          fetchAnalysis(API_URL, analysisId, API_TOKEN),
+          fetchDexSummary(API_URL, analysisId, API_TOKEN),
+        ]);
         if (!active) return;
         setAnalysis(detail);
         setSummary(dex);
         setReportError("");
-      })
-      .catch((cause: unknown) => {
+      } catch (cause: unknown) {
         if (active)
           setReportError(
             cause instanceof Error ? cause.message : "Gagal mengambil laporan",
           );
-      })
-      .finally(() => {
+      } finally {
         if (active) setReportLoading(false);
-      });
+      }
+    };
+    void load();
     return () => {
       active = false;
     };
@@ -92,19 +92,16 @@ export default function AnalysisDetailScreen() {
 
   useEffect(() => {
     if (!API_URL) {
-      setTabLoading(false);
       return;
     }
     let active = true;
-    if (tab === "overview") {
-      setTabLoading(false);
-      return () => {
-        active = false;
-      };
-    }
-    setTabLoading(true);
-    setTabError("");
     const load = async () => {
+      if (tab === "overview") {
+        setTabLoading(false);
+        return;
+      }
+      setTabLoading(true);
+      setTabError("");
       if (tab === "packages") {
         const page = await fetchDexPackages(
           API_URL,
