@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Collapsible } from "@/components/ui/collapsible";
 
 import {
   getInstalledApkInfo,
@@ -281,32 +282,33 @@ export default function DetailApk() {
               ))
             )}
 
-            <Text style={styles.sectionTitle}>Semua file di dalam APK</Text>
-            {allFiles.length === 0 ? (
-              <Text style={styles.empty}>Tidak ada file yang ditemukan.</Text>
-            ) : (
-              <FlatList
-                data={allFiles}
-                keyExtractor={(item, index) => `${item}-${index}`}
-                renderItem={({ item }) => (
-                  <Pressable
-                    onPress={() =>
-                      router.push({
-                        pathname: "/detail-kode",
-                        params: { file: item, packageName },
-                      })
-                    }
-                    style={({ pressed }) => [
-                      styles.row,
-                      pressed && styles.buttonPressed,
-                    ]}
-                  >
-                    <Text style={styles.item}>{item}</Text>
-                  </Pressable>
-                )}
-                scrollEnabled={false}
-              />
-            )}
+            <Collapsible title={`Semua file di dalam APK (${allFiles.length})`}>
+              {allFiles.length === 0 ? (
+                <Text style={styles.empty}>Tidak ada file yang ditemukan.</Text>
+              ) : (
+                <FlatList
+                  data={allFiles}
+                  keyExtractor={(item, index) => `${item}-${index}`}
+                  renderItem={({ item }) => (
+                    <Pressable
+                      onPress={() =>
+                        router.push({
+                          pathname: "/detail-kode",
+                          params: { file: item, packageName },
+                        })
+                      }
+                      style={({ pressed }) => [
+                        styles.row,
+                        pressed && styles.buttonPressed,
+                      ]}
+                    >
+                      <Text style={styles.item}>{item}</Text>
+                    </Pressable>
+                  )}
+                  scrollEnabled={false}
+                />
+              )}
+            </Collapsible>
             <Text style={styles.sectionTitle}>Framework & Library (lokal)</Text>
             {detections.length === 0 ? (
               <Text style={styles.empty}>
@@ -328,18 +330,19 @@ export default function DetailApk() {
               ))
             )}
 
-            <Text style={styles.sectionTitle}>Permissions</Text>
-            {apkInfo.permissions.length === 0 ? (
-              <Text style={styles.empty}>
-                Tidak ada permission yang tercatat.
-              </Text>
-            ) : (
-              apkInfo.permissions.map((permission) => (
-                <View key={permission} style={styles.row}>
-                  <Text style={styles.item}>{permission}</Text>
-                </View>
-              ))
-            )}
+            <Collapsible title={`Permissions (${apkInfo.permissions.length})`}>
+              {apkInfo.permissions.length === 0 ? (
+                <Text style={styles.empty}>
+                  Tidak ada permission yang tercatat.
+                </Text>
+              ) : (
+                apkInfo.permissions.map((permission) => (
+                  <View key={permission} style={styles.row}>
+                    <Text style={styles.item}>{permission}</Text>
+                  </View>
+                ))
+              )}
+            </Collapsible>
           </>
         ) : null}
       </ScrollView>
@@ -410,18 +413,23 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
+    color: "#8EAEFF",
+    fontSize: 15,
     fontWeight: "700",
-    marginTop: 20,
-    marginBottom: 8,
+    marginTop: 24,
+    marginBottom: 10,
+    letterSpacing: 0.3,
   },
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 6,
+    borderRadius: 10,
+    backgroundColor: "#151D31",
+    borderWidth: 1,
     borderColor: "#26334D",
   },
   label: {
@@ -434,6 +442,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     flex: 1,
     textAlign: "right",
+    fontWeight: "600",
   },
   center: {
     flex: 1,
@@ -441,20 +450,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   row: {
-    paddingVertical: 8,
-    borderBottomWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 6,
+    borderRadius: 10,
+    backgroundColor: "#151D31",
+    borderWidth: 1,
     borderColor: "#26334D",
   },
   buttonPressed: {
     opacity: 0.7,
   },
   item: {
-    color: "#FFFFFF",
+    color: "#E8ECF4",
     fontSize: 13,
   },
   empty: {
     color: "#A8B1C5",
     paddingVertical: 12,
+    fontStyle: "italic",
   },
   error: {
     color: "#FF9292",
