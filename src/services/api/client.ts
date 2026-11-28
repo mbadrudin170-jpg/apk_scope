@@ -1,6 +1,18 @@
 export type AnalysisStatus = 'queued' | 'validating' | 'analyzing' | 'enriching' | 'completed' | 'failed';
 export type DexSummary = { status: 'available' | 'partial' | 'failed' | 'unavailable'; dex_file_count: number; dex_files?: { name: string; class_count: number }[]; package_count: number; class_count: number; method_count: number; library_count: number; warnings: string[] };
 export type AnalysisItem = { id: string; filename: string; file_size: number; sha256: string; status: AnalysisStatus; progress_message: string; error_message?: string | null; created_at: string; updated_at: string; report?: Record<string, unknown> | null; dex_summary?: DexSummary | null };
+export type DecompileToolStatus = { status: string; file_count: number; error: string | null };
+export type DecompileStatus = {
+  analysis_id: string;
+  status: "not_started" | "queued" | "running" | "completed" | "partial" | "failed";
+  progress_message: string;
+  tools: { jadx: DecompileToolStatus; apktool: DecompileToolStatus };
+  warnings: string[];
+  error_message?: string | null;
+};
+export type SourceFile = { path: string; name: string; size_bytes: number };
+export type SourceFileContent = { path: string; content: string; size_bytes: number; line_count: number; truncated: boolean };
+
 export type UploadResponse = { id: string; filename: string; size: number; sha256: string; status: AnalysisStatus };
 export type Page<T> = { items: T[]; total: number; limit: number; offset: number };
 export type DexPackage = { name: string; class_count: number; method_count: number };
@@ -9,8 +21,8 @@ export type DexMethod = { name: string; signature: string; kind: string; access_
 export type DexLibrary = { name: string; category: string; confidence: string; method: string; evidence_count: number; evidence: string[]; version: string | null };
 
 function endpoint(baseUrl: string, path: string): string { return baseUrl.replace(/\/$/, '') + path; }
-async function request<T>(baseUrl: string, path: string, token = ''): Promise<T> {
-  const response = await fetch(endpoint(baseUrl, path), { headers: token.trim() ? { Authorization: 'Bearer ' + token.trim() } : {} });
+async function request<T>(baseUrl: string, path: string, token = '', method = 'GET'): Promise<T> {
+  const response = await fetch(endpoint(baseUrl, path), { method, headers: token.trim() ? { Authorization: 'Bearer ' + token.trim() } : {} });
   if (!response.ok) {
     let message = 'Permintaan gagal (' + response.status + ')';
     try { const body = await response.json() as { detail?: string }; if (body.detail) message = body.detail; } catch { /* Keep HTTP status message. */ }
@@ -28,3 +40,23 @@ export function fetchDexMethods(baseUrl: string, id: string, className: string, 
 export function fetchDexLibraries(baseUrl: string, id: string, q: string, offset: number, token = ''): Promise<Page<DexLibrary>> { return request(baseUrl, '/v1/analyses/' + encodeURIComponent(id) + '/dex/libraries?' + pageParams(q, offset, 50), token); }
 export function fetchApkFiles(baseUrl: string, id: string, q: string, offset: number, token = ''): Promise<Page<string>> { return request(baseUrl, '/v1/analyses/' + encodeURIComponent(id) + '/files?' + pageParams(q, offset, 100), token); }
 export function uploadUrl(baseUrl: string): string { return endpoint(baseUrl, '/v1/analyses'); }
+export function startDecompilation(baseUrl: string, id: string, token = ''): Promise<DecompileStatus> {
+  return request(baseUrl, '/v1/analyses/' + encodeURIComponent(id) + '/decompile', token, 'POST');
+}
+export function fetchDecompilationStatus(baseUrl: string, id: string, token = ''): Promise<DecompileStatus> {
+  return request(baseUrl, '/v1/analyses/' + encodeURIComponent(id) + '/decompile/status', token);
+}
+export function fetchSourceFiles(
+  baseUrl: string, id: string, tool: 'jadx' | 'apktool', kind: 'java' | 'smali' | 'xml',
+  q: string, offset: number, token = '',
+): Promise<Page<SourceFile>> {
+  const params = new URLSearchParams({ tool, kind, q, limit: '100', offset: String(offset) });
+  return request(baseUrl, '/v1/analyses/' + encodeURIComponent(id) + '/source/files?' + params.toString(), token);
+}
+export function fetchSourceFile(
+  baseUrl: string, id: string, tool: 'jadx' | 'apktool', kind: 'java' | 'smali' | 'xml',
+  path: string, token = '',
+): Promise<SourceFileContent> {
+  const params = new URLSearchParams({ tool, kind, path });
+  return request(baseUrl, '/v1/analyses/' + encodeURIComponent(id) + '/source/file?' + params.toString(), token);
+}

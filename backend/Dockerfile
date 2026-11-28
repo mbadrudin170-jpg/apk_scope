@@ -10,7 +10,7 @@ RUN pip install .
 COPY app ./app
 
 RUN useradd --create-home --uid 10001 appuser \
-    && mkdir -p /data/uploads /data/reports \
+    && mkdir -p /data/uploads /data/reports /data/decompiled \
     && chown -R appuser:appuser /app /data
 
 USER appuser

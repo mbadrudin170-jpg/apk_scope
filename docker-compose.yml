@@ -4,20 +4,54 @@ services:
       context: ./backend
     env_file:
       - ./backend/.env
+    environment:
+      DECOMPILER_URL: http://decompiler:8001
     ports:
       - "8000:8000"
     volumes:
       - apk_scope_data:/data
+      - decompiled_data:/data/decompiled
     depends_on:
       mobsf:
+        condition: service_started
+      decompiler:
         condition: service_started
     networks:
       - ingress
       - analysis
+      - decompiler
     restart: unless-stopped
     read_only: true
     tmpfs:
       - /tmp:size=256m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  decompiler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.decompiler
+    env_file:
+      - ./backend/.env
+    environment:
+      APP_DATA_DIR: /data
+      DECOMPILE_TIMEOUT_SECONDS: 3600
+    volumes:
+      - apk_scope_data:/data:ro
+      - decompiled_data:/data/decompiled
+    expose:
+      - "8001"
+    networks:
+      - decompiler
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=1g
+    mem_limit: 4g
+    cpus: 2.0
+    pids_limit: 256
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -43,7 +77,10 @@ networks:
   ingress:
   analysis:
     internal: true
+  decompiler:
+    internal: true
 
 volumes:
   apk_scope_data:
+  decompiled_data:
   mobsf_data:

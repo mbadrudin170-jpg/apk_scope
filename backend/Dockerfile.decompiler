@@ -1,0 +1,34 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    JAVA_TOOL_OPTIONS="-XX:ActiveProcessorCount=2 -Xmx2048m"
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl openjdk-17-jre-headless unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /opt/jadx /opt/apktool \
+    && curl -fsSL https://github.com/skylot/jadx/releases/download/v1.5.7/jadx-1.5.7.zip -o /tmp/jadx.zip \
+    && echo "1755e4242ade71a077438723689f404079592ec7764a3a0572f98fef94ebcbf3  /tmp/jadx.zip" | sha256sum -c - \
+    && unzip -q /tmp/jadx.zip -d /opt/jadx \
+    && rm /tmp/jadx.zip \
+    && printf '#!/bin/sh\nJADX_BIN="$(find /opt/jadx -type f -path "*/bin/jadx" -print -quit)"\n[ -x "$JADX_BIN" ] || exit 127\nexec "$JADX_BIN" "$@"\n' > /usr/local/bin/jadx \
+    && chmod +x /usr/local/bin/jadx \
+    && curl -fsSL https://github.com/iBotPeaches/Apktool/releases/download/v2.12.1/apktool_2.12.1.jar -o /opt/apktool/apktool.jar \
+    && echo "66cf4524a4a45a7f56567d08b2c9b6ec237bcdd78cee69fd4a59c8a0243aeafa  /opt/apktool/apktool.jar" | sha256sum -c - \
+    && printf '#!/bin/sh\nexec java -jar /opt/apktool/apktool.jar "$@"\n' > /usr/local/bin/apktool \
+    && chmod +x /usr/local/bin/apktool \
+    && useradd --create-home --uid 10001 worker \
+    && mkdir -p /data/uploads /data/reports /data/decompiled /tmp/decompiler-home \
+    && chown -R worker:worker /app /data /tmp/decompiler-home
+
+COPY pyproject.toml .
+RUN pip install .
+COPY app ./app
+
+USER worker
+EXPOSE 8001
+CMD ["uvicorn", "app.decompiler_worker:app", "--host", "0.0.0.0", "--port", "8001"]

@@ -13,6 +13,14 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPExcepti
 from .config import Settings, get_settings
 from .database import AnalysisDatabase, utc_now
 from .dex import analyze_apk_dex
+from .decompiler import (
+    analysis_directory as decompile_analysis_directory,
+    initial_status as initial_decompile_status,
+    list_source_files,
+    read_decompile_status,
+    read_source_file,
+    write_decompile_status,
+)
 from .mobsf import MobSFClient, MobSFError
 
 logging.basicConfig(level=logging.INFO)
@@ -307,11 +315,139 @@ def get_analysis_files(
     }
 
 
+
+
+@app.post(
+    "/v1/analyses/{analysis_id}/decompile",
+    status_code=202,
+    dependencies=[Depends(require_access)],
+)
+async def start_decompilation(analysis_id: str) -> dict[str, Any]:
+    _require_analysis(analysis_id)
+    try:
+        decompile_analysis_directory(analysis_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail="ID analisis tidak valid") from error
+
+    current = read_decompile_status(analysis_id)
+    if current and current.get("status") in {"running", "completed", "partial"}:
+        return current
+
+    if not settings.decompiler_worker_token:
+        raise HTTPException(status_code=503, detail="DECOMPILER_WORKER_TOKEN belum dikonfigurasi di backend/.env")
+
+    status = initial_decompile_status(analysis_id)
+    status["progress_message"] = "Mengirim pekerjaan ke worker dekompilasi internal"
+    write_decompile_status(analysis_id, status)
+    try:
+        timeout = httpx.Timeout(20, connect=5)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.post(
+                f"{settings.decompiler_url.rstrip('/')}/internal/decompile/{analysis_id}",
+                headers={"X-Worker-Token": settings.decompiler_worker_token},
+            )
+        response.raise_for_status()
+    except (httpx.HTTPError, ValueError) as error:
+        status["status"] = "failed"
+        status["progress_message"] = "Worker dekompilasi tidak dapat dihubungi"
+        status["error_message"] = str(error)[:1000]
+        status["finished_at"] = utc_now()
+        write_decompile_status(analysis_id, status)
+        raise HTTPException(
+            status_code=502,
+            detail="Worker dekompilasi tidak tersedia. Periksa container decompiler.",
+        ) from error
+
+    return read_decompile_status(analysis_id) or status
+
+
+@app.get(
+    "/v1/analyses/{analysis_id}/decompile/status",
+    dependencies=[Depends(require_access)],
+)
+def get_decompilation_status(analysis_id: str) -> dict[str, Any]:
+    _require_analysis(analysis_id)
+    try:
+        decompile_analysis_directory(analysis_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail="ID analisis tidak valid") from error
+    return read_decompile_status(analysis_id) or {
+        "analysis_id": analysis_id,
+        "status": "not_started",
+        "progress_message": "Dekompilasi belum dimulai",
+        "tools": {
+            "jadx": {"status": "not_started", "file_count": 0, "error": None},
+            "apktool": {"status": "not_started", "file_count": 0, "error": None},
+        },
+        "warnings": [],
+        "error_message": None,
+    }
+
+
+@app.get(
+    "/v1/analyses/{analysis_id}/source/files",
+    dependencies=[Depends(require_access)],
+)
+def get_decompiled_files(
+    analysis_id: str,
+    tool: str = "jadx",
+    kind: str = "java",
+    q: str = "",
+    limit: int = 100,
+    offset: int = 0,
+) -> dict[str, Any]:
+    _require_analysis(analysis_id)
+    status = read_decompile_status(analysis_id)
+    if not status or status.get("status") not in {"completed", "partial"}:
+        raise HTTPException(status_code=409, detail="Dekompilasi belum selesai")
+    if tool not in {"jadx", "apktool"}:
+        raise HTTPException(status_code=400, detail="Tool tidak didukung")
+    tool_status = (status.get("tools") or {}).get(tool, {}).get("status")
+    if tool_status not in {"completed", "partial"}:
+        raise HTTPException(status_code=409, detail=f"Hasil {tool} tidak tersedia")
+    page_limit, page_offset = _page_args(limit, offset)
+    try:
+        return list_source_files(
+            analysis_id, tool, kind, q.strip()[:300], page_limit, page_offset
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.get(
+    "/v1/analyses/{analysis_id}/source/file",
+    dependencies=[Depends(require_access)],
+)
+def get_decompiled_file(
+    analysis_id: str,
+    path: str,
+    tool: str = "jadx",
+    kind: str = "java",
+) -> dict[str, Any]:
+    _require_analysis(analysis_id)
+    status = read_decompile_status(analysis_id)
+    if not status or status.get("status") not in {"completed", "partial"}:
+        raise HTTPException(status_code=409, detail="Dekompilasi belum selesai")
+    if tool not in {"jadx", "apktool"}:
+        raise HTTPException(status_code=400, detail="Tool tidak didukung")
+    tool_status = (status.get("tools") or {}).get(tool, {}).get("status")
+    if tool_status not in {"completed", "partial"}:
+        raise HTTPException(status_code=409, detail=f"Hasil {tool} tidak tersedia")
+    try:
+        return read_source_file(analysis_id, tool, kind, path)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
 @app.delete("/v1/analyses/{analysis_id}", dependencies=[Depends(require_access)])
 async def delete_analysis(analysis_id: str) -> dict[str, bool]:
     result = database.get(analysis_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Analisis tidak ditemukan")
+
+    decompile_status = read_decompile_status(analysis_id)
+    if decompile_status and decompile_status.get("status") in {"queued", "running"}:
+        raise HTTPException(status_code=409, detail="Dekompilasi masih berjalan. Hapus setelah proses selesai.")
 
     active_statuses = {"queued", "validating", "analyzing", "enriching"}
     if result["status"] in active_statuses:
@@ -334,4 +470,8 @@ async def delete_analysis(analysis_id: str) -> dict[str, bool]:
 
     database.delete(analysis_id)
     (settings.app_data_dir / "uploads" / f"{analysis_id}.apk").unlink(missing_ok=True)
+    decompiled_directory = settings.app_data_dir / "decompiled" / analysis_id
+    if decompiled_directory.is_dir() and not decompiled_directory.is_symlink():
+        import shutil
+        shutil.rmtree(decompiled_directory)
     return {"deleted": True}

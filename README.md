@@ -192,12 +192,12 @@ apk_scope/
 ### Konfigurasi backend
 
 1. Salin `backend/.env.example` menjadi `backend/.env`.
-2. Isi `MOBSF_API_KEY` dengan token acak panjang milikmu dan ganti `APP_API_TOKEN` dengan token acak panjang yang berbeda. Compose meneruskan `MOBSF_API_KEY` ke container MobSF sebagai API key statis.
+2. Isi `MOBSF_API_KEY`, `APP_API_TOKEN`, dan `DECOMPILER_WORKER_TOKEN` dengan token acak panjang yang berbeda satu sama lain. Compose meneruskan token yang sesuai ke MobSF, API, dan worker.
 3. Jalankan `docker compose up -d --build` dari root repository.
 4. Periksa `http://ALAMAT_SERVER:8000/health`. Endpoint ini hanya memeriksa API dan apakah key MobSF telah diisi; bukan jaminan scan MobSF siap.
-5. Pantau log dengan `docker compose logs -f api mobsf`.
+5. Pantau log dengan `docker compose logs -f api mobsf decompiler`.
 
-Data APK, database SQLite, dan data MobSF disimpan pada Docker volumes. Jangan menghapus volume jika ingin mempertahankan riwayat.
+APK dan database SQLite disimpan pada volume `apk_scope_data`, hasil dekompilasi pada `decompiled_data`, dan data MobSF pada `mobsf_data`. Jangan menghapus volume jika ingin mempertahankan riwayat.
 
 ### Konfigurasi aplikasi Android
 
@@ -213,9 +213,28 @@ Alamat `127.0.0.1` pada HP menunjuk ke HP itu sendiri, bukan server. Untuk pengg
 - Pipeline saat ini memakai FastAPI BackgroundTasks dalam satu proses API; bukan worker queue persisten. Jika proses API restart, pekerjaan yang sedang berjalan tidak otomatis dipulihkan.
 - Progres yang ditampilkan adalah progres upload dan status tahap analisis, bukan persentase internal MobSF.
 - Riwayat menampilkan ringkasan; endpoint detail memuat JSON laporan penuh.
-- Parser DEX awal tersedia untuk package, class, method, dan deteksi library berbasis signature terbatas. Code Explorer hasil dekompilasi Java/Smali, native analyzer, dan security enrichment khusus belum diimplementasikan pada tahap ini.
+- Parser DEX tersedia untuk package, class, method, dan deteksi library berbasis signature terbatas. Code Explorer menggunakan JADX untuk Java dan Apktool untuk Smali serta XML/resource; hasilnya bukan source code asli dan dapat tidak lengkap jika APK di-obfuscate.
 - Jalankan pengujian backend dan pemeriksaan Expo di lingkungan pengembangan sebelum mengirim APK untuk analisis nyata.
 
+
+### Code Explorer (JADX + Apktool)
+
+Worker dekompilasi berjalan pada container tersendiri, hanya terhubung melalui jaringan Docker internal. Worker tidak mempublikasikan port ke host, tidak memiliki akses internet saat runtime, dan menerima volume APK secara read-only. Hasil dekompilasi disimpan pada volume terpisah. JADX v1.5.7 dan Apktool v2.12.1 diunduh saat image dibangun dan checksum SHA-256 diverifikasi. Worker memakai Java 17, batas memori 4 GiB, 2 CPU, dan batas waktu proses yang dapat diatur.
+
+- `POST /v1/analyses/{id}/decompile` — mulai dekompilasi APK yang analisis MobSF/DEX-nya sudah selesai.
+- `GET /v1/analyses/{id}/decompile/status` — status dan jumlah file dari JADX serta Apktool.
+- `GET /v1/analyses/{id}/source/files?tool=jadx&kind=java&q=&limit=&offset=` — daftar file Java berpaginasi.
+- `GET /v1/analyses/{id}/source/files?tool=apktool&kind=smali` — daftar file Smali.
+- `GET /v1/analyses/{id}/source/files?tool=apktool&kind=xml` — daftar XML/resource.
+- `GET /v1/analyses/{id}/source/file?tool=jadx&kind=java&path=com%2Fexample%2FMainActivity.java` — isi satu file teks (maksimal 1 MiB).
+
+Code Explorer pada halaman detail analisis memulai proses dekompilasi ketika dibuka, memantau status, dan menyediakan tab Java, Smali, dan XML. File hasil disimpan di volume `decompiled_data` dan ikut dihapus saat riwayat analisis dihapus. Pekerjaan yang terputus karena worker restart ditandai gagal dan dapat dijalankan ulang dari Code Explorer.
+
+Untuk mengaktifkan worker setelah memperbarui repo:
+```bash
+docker compose up -d --build api decompiler
+docker compose logs -f api decompiler
+```
 
 ### Endpoint hasil DEX
 

@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { getApiConfig } from "@/services/api/config";
 import { useEffect, useState } from "react";
 import {
@@ -229,6 +229,12 @@ export default function AnalysisDetailScreen() {
         {analysis?.filename ?? "Detail analisis"}
       </Text>
       <Text style={styles.sub}>{subtitle}</Text>
+      <Pressable
+        onPress={() => router.push({ pathname: "/code-explorer/[analysisId]", params: { analysisId } })}
+        style={styles.codeExplorerButton}
+      >
+        <Text style={styles.codeExplorerButtonText}>Buka Code Explorer · Java / Smali / XML</Text>
+      </Pressable>
 
       <View style={styles.stats}>
         <Stat label="DEX" value={summary?.dex_file_count ?? 0} />
@@ -469,6 +475,15 @@ const styles = StyleSheet.create({
   },
   title: { color: "#F4F6FC", fontSize: 24, fontWeight: "800", marginTop: 8 },
   sub: { color: "#A8B1C5", fontSize: 12, marginTop: 5 },
+  codeExplorerButton: {
+    backgroundColor: "#315AC0",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: 14,
+    alignItems: "center",
+  },
+  codeExplorerButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
   stats: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 18 },
   stat: {
     flexGrow: 1,

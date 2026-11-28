@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     mobsf_url: str = "http://mobsf:8000"
     mobsf_api_key: str = ""
     app_api_token: str = ""
+    decompiler_worker_token: str = ""
+    decompiler_url: str = "http://decompiler:8001"
+    decompile_timeout_seconds: int = 3600
+    jadx_bin: str = "/usr/local/bin/jadx"
+    apktool_bin: str = "/usr/local/bin/apktool"
 
     @property
     def max_upload_bytes(self) -> int:
